@@ -1,0 +1,86 @@
+<?php
+/**
+ * Plugin Name: BBConnect MailChimp
+ * Plugin URI: n/a
+ * Description: An addon to provide a bridge to connect with MailChimp for BB Connect
+ * BBConnect
+ * Version: 0.0.1
+ * Author: Brown Box
+ * Author URI: http://brownbox.net.au
+ * License: Proprietary Brown Box
+ */
+require_once ('mailchimp-api-php/Mailchimp.php');
+require_once ('settings.php');
+
+function bbconnect_mailchimp_init() {
+    if (!defined('BBCONNECT_VER')) {
+        add_action('admin_init', 'bbconnect_mailchimp_deactivate');
+        add_action('admin_notices', 'bbconnect_mailchimp_deactivate_notice');
+    }
+}
+add_action('plugins_loaded', 'bbconnect_mailchimp_init');
+
+function bbconnect_mailchimp_deactivate() {
+    deactivate_plugins(plugin_basename(__FILE__));
+}
+
+function bbconnect_mailchimp_deactivate_notice() {
+    echo '<div class="updated"><p><strong>BBConnect MailChimp</strong> has been <strong>deactivated</strong> as it requires BB Connect.</p></div>';
+    if (isset($_GET['activate']))
+        unset($_GET['activate']);
+}
+
+function subscribe_to_mailchimp($user_id) {
+    $api_key = get_option('bbconnect_mailchimp_api_key');
+    $list_id = get_option('bbconnect_mailchimp_list_id');
+
+    $user = get_user_by('id', $user_id);
+    $firstname = get_user_meta($user_id, 'first_name', true);
+    $lastname = get_user_meta($user_id, 'last_name', true);
+    $address1 = get_user_meta($user_id, 'bbconnect_address_one_1', true);
+    $city = get_user_meta($user_id, 'bbconnect_address_city_1', true);
+    $state = get_user_meta($user_id, 'bbconnect_address_state_1', true);
+    $postal_code = get_user_meta($user_id, 'bbconnect_address_postal_code_1', true);
+    $country = get_user_meta($user_id, 'bbconnect_address_country_1', true);
+
+    $bbconnect_helper_country = bbconnect_helper_country();
+    $country = $bbconnect_helper_country[$country];
+
+    $email = $user->user_email;
+
+    $mailchimp = new Mailchimp($api_key);
+    $Mailchimp_Lists = new Mailchimp_Lists($mailchimp);
+    try {
+        $params = array(
+                'id' => $list_id,
+                'emails' => array(
+                        array(
+                                'email' => $email
+                        )
+                )
+        );
+        $is_User_Registered = $mailchimp->call('lists/member-info', $params);
+
+        if ($is_User_Registered['success_count'] == 0 || ($is_User_Registered['success_count'] != 0 && $is_User_Registered['data'][0]['status'] != 'subscribed' && $is_User_Registered['data'][0]['status'] != 'unsubscribed')) {
+            $mc_email = array(
+                    'email' => $email
+            );
+            $merge_vars = array(
+                    'FNAME' => $firstname,
+                    'LNAME' => $lastname,
+                    'addr1' => $address1,
+                    'city' => $city,
+                    'state' => $state,
+                    'zip' => $postal_code,
+                    'country' => $country
+            );
+            $subscriber = $Mailchimp_Lists->subscribe($list_id, $mc_email, $merge_vars, '', false, false, false, false);
+            if (empty($subscriber['leid'])) {
+                wp_mail('dev@brownbox.net.au', 'CW Contact subscription to MailChimp failed 001', $email . ',' . $firstname . ' ' . $lastname . ' has failed to subscribe to mailchimp.');
+            }
+        }
+    } catch (\Mailchimp_Error $e) {
+        wp_mail('dev@brownbox.net.au', 'CW Contact subscription to MailChimp failed 002', $email . ',' . $firstname . ' ' . $lastname . ' has failed to subscribe to mailchimp.');
+        return;
+    }
+}
