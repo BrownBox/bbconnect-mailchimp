@@ -1,5 +1,6 @@
 <?php
 
+namespace BB\Mailchimp;
 class Mailchimp_Templates {
     public function __construct(Mailchimp $master) {
         $this->master = $master;

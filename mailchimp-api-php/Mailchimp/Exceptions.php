@@ -1,6 +1,8 @@
 <?php
 
-class Mailchimp_Error extends Exception {}
+namespace BB\Mailchimp;
+class Mailchimp_Error extends \Exception {}
+
 class Mailchimp_HttpError extends Mailchimp_Error {}
 
 /**

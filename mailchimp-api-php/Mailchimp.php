@@ -1,23 +1,7 @@
 <?php
-
-require_once 'Mailchimp/Folders.php';
-require_once 'Mailchimp/Templates.php';
-require_once 'Mailchimp/Users.php';
-require_once 'Mailchimp/Helper.php';
-require_once 'Mailchimp/Mobile.php';
-require_once 'Mailchimp/Conversations.php';
-require_once 'Mailchimp/Ecomm.php';
-require_once 'Mailchimp/Neapolitan.php';
-require_once 'Mailchimp/Lists.php';
-require_once 'Mailchimp/Campaigns.php';
-require_once 'Mailchimp/Vip.php';
-require_once 'Mailchimp/Reports.php';
-require_once 'Mailchimp/Gallery.php';
-require_once 'Mailchimp/Goal.php';
-require_once 'Mailchimp/Exceptions.php';
-
+namespace BB\Mailchimp;
 class Mailchimp {
-    
+
     public $apikey;
     public $ch;
     public $root  = 'https://api.mailchimp.com/2.0';
@@ -156,7 +140,7 @@ class Mailchimp {
         $this->ch = curl_init();
 
         if (isset($opts['CURLOPT_FOLLOWLOCATION']) && $opts['CURLOPT_FOLLOWLOCATION'] === true) {
-            curl_setopt($this->ch, CURLOPT_FOLLOWLOCATION, true);    
+            curl_setopt($this->ch, CURLOPT_FOLLOWLOCATION, true);
         }
 
         curl_setopt($this->ch, CURLOPT_USERAGENT, 'MailChimp-PHP/2.0.6');
@@ -191,7 +175,7 @@ class Mailchimp {
 
     public function call($url, $params) {
         $params['apikey'] = $this->apikey;
-        
+
         $params = json_encode($params);
         $ch     = $this->ch;
 
@@ -223,7 +207,7 @@ class Mailchimp {
             throw new Mailchimp_HttpError("API call to $url failed: " . curl_error($ch));
         }
         $result = json_decode($response_body, true);
-        
+
         if(floor($info['http_code'] / 100) >= 4) {
             throw $this->castError($result);
         }
@@ -260,4 +244,18 @@ class Mailchimp {
     }
 }
 
-
+require_once 'Mailchimp/Folders.php';
+require_once 'Mailchimp/Templates.php';
+require_once 'Mailchimp/Users.php';
+require_once 'Mailchimp/Helper.php';
+require_once 'Mailchimp/Mobile.php';
+require_once 'Mailchimp/Conversations.php';
+require_once 'Mailchimp/Ecomm.php';
+require_once 'Mailchimp/Neapolitan.php';
+require_once 'Mailchimp/Lists.php';
+require_once 'Mailchimp/Campaigns.php';
+require_once 'Mailchimp/Vip.php';
+require_once 'Mailchimp/Reports.php';
+require_once 'Mailchimp/Gallery.php';
+require_once 'Mailchimp/Goal.php';
+require_once 'Mailchimp/Exceptions.php';

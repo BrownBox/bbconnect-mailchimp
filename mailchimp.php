@@ -48,8 +48,8 @@ function subscribe_to_mailchimp($user_id) {
 
     $email = $user->user_email;
 
-    $mailchimp = new Mailchimp($api_key);
-    $Mailchimp_Lists = new Mailchimp_Lists($mailchimp);
+    $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
+    $Mailchimp_Lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
     try {
         $params = array(
                 'id' => $list_id,
