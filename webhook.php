@@ -92,6 +92,29 @@ if (isset($_POST['type'])) {
                         update_user_meta($user_id, $meta_key, $meta_value);
                     }
                 }
+
+                if ($type != 'unsubscribe') { // If they're still subscribed, sync mapped groups
+                    $mapped_category = get_option('bbconnect_mailchimp_channels_group');
+                    if (!empty($mapped_category)) {
+                        $group_categories = $mailchimp_lists->interestGroupings(BBCONNECT_MAILCHIMP_LIST_ID);
+                        foreach ($group_categories as $category) {
+                            if ($category['name'] == $mapped_category) {
+                                foreach ($_POST['data']['merges']['GROUPINGS'] as $grouping) {
+                                    if ($grouping['name'] == $mapped_category) {
+                                        foreach ($category['groups'] as $group) {
+                                            $meta_key = 'bbconnect_mailchimp_group_'.bbconnect_mailchimp_clean_group_name($grouping['name'], $group['name']);
+                                            if (strpos($grouping['groups'], $group['name']) !== false) {
+                                                update_user_meta($user_id, $meta_key, 'true');
+                                            } else {
+                                                update_user_meta($user_id, $meta_key, 'false');
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             bbconnect_track_activity($tracking_args);

@@ -3,15 +3,15 @@
  * Plugin Name: Connexions MailChimp
  * Plugin URI: n/a
  * Description: An addon to provide a bridge to connect with MailChimp for Connexions
- * Version: 0.2.2
+ * Version: 0.3
  * Author: Brown Box
  * Author URI: http://brownbox.net.au
  * License: Proprietary Brown Box
  */
 require_once (plugin_dir_path(__FILE__).'mailchimp-api-php/Mailchimp.php');
 require_once (plugin_dir_path(__FILE__).'mailchimp-api-php/Mailchimp-o.php');
+require_once (plugin_dir_path(__FILE__).'fx.php');
 require_once (plugin_dir_path(__FILE__).'settings.php');
-require_once (plugin_dir_path(__FILE__).'updates.php');
 
 define('BBCONNECT_MAILCHIMP_API_KEY', get_option('bbconnect_mailchimp_api_key'));
 define('BBCONNECT_MAILCHIMP_LIST_ID', get_option('bbconnect_mailchimp_list_id'));
@@ -22,9 +22,17 @@ function bbconnect_mailchimp_init() {
         add_action('admin_notices', 'bbconnect_mailchimp_deactivate_notice');
         return;
     }
+
     if (is_admin()) {
         new BbConnectUpdates(__FILE__, 'BrownBox', 'bbconnect-mailchimp');
     }
+
+    if (!wp_next_scheduled('bbconnect_mailchimp_do_daily_updates')) {
+        $run_time = bbconnect_get_datetime('3am');
+        $run_time->setTimezone(new DateTimeZone('UTC'));
+        wp_schedule_event($run_time->getTimestamp(), 'daily', 'bbconnect_mailchimp_do_daily_updates');
+    }
+    register_deactivation_hook(__FILE__, 'bbconnect_mailchimp_deactivation');
 }
 add_action('plugins_loaded', 'bbconnect_mailchimp_init');
 
@@ -38,62 +46,14 @@ function bbconnect_mailchimp_deactivate_notice() {
         unset($_GET['activate']);
 }
 
-function subscribe_to_mailchimp($user_id) {
-    $user = get_user_by('id', $user_id);
-    $firstname = get_user_meta($user_id, 'first_name', true);
-    $lastname = get_user_meta($user_id, 'last_name', true);
-    $address1 = get_user_meta($user_id, 'bbconnect_address_one_1', true);
-    $city = get_user_meta($user_id, 'bbconnect_address_city_1', true);
-    $state = get_user_meta($user_id, 'bbconnect_address_state_1', true);
-    $postal_code = get_user_meta($user_id, 'bbconnect_address_postal_code_1', true);
-    $country = get_user_meta($user_id, 'bbconnect_address_country_1', true);
-
-    $bbconnect_helper_country = bbconnect_helper_country();
-    $country = $bbconnect_helper_country[$country];
-
-    $email = $user->user_email;
-
-    $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
-    $Mailchimp_Lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
-    try {
-        $params = array(
-                'id' => BBCONNECT_MAILCHIMP_LIST_ID,
-                'emails' => array(
-                        array(
-                                'email' => $email
-                        )
-                )
-        );
-        $is_User_Registered = $mailchimp->call('lists/member-info', $params);
-
-        if ($is_User_Registered['success_count'] == 0 || ($is_User_Registered['success_count'] != 0 && $is_User_Registered['data'][0]['status'] != 'subscribed' && $is_User_Registered['data'][0]['status'] != 'unsubscribed')) {
-            $mc_email = array(
-                    'email' => $email
-            );
-            $merge_vars = array(
-                    'FNAME' => $firstname,
-                    'LNAME' => $lastname,
-                    'addr1' => $address1,
-                    'city' => $city,
-                    'state' => $state,
-                    'zip' => $postal_code,
-                    'country' => $country
-            );
-            $subscriber = $Mailchimp_Lists->subscribe(BBCONNECT_MAILCHIMP_LIST_ID, $mc_email, $merge_vars, '', false, false, false, false);
-            if (empty($subscriber['leid'])) {
-                // Something went wrong
-            }
-        }
-    } catch (BB\Mailchimp\Mailchimp_Error $e) {
-        // Something went wrong
-        return;
-    }
-}
-
 add_filter('bbconnect_activity_icon', 'bbconnect_mailchimp_activity_icon', 10, 2);
 function bbconnect_mailchimp_activity_icon($icon, $activity_type) {
     if ($activity_type == 'mailchimp') {
         $icon = plugin_dir_url(__FILE__).'images/activity-icon.png';
     }
     return $icon;
+}
+
+function bbconnect_mailchimp_deactivation() {
+    wp_clear_scheduled_hook('bbconnect_mailchimp_do_daily_updates');
 }
