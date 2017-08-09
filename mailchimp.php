@@ -3,18 +3,20 @@
  * Plugin Name: Connexions MailChimp
  * Plugin URI: n/a
  * Description: An addon to provide a bridge to connect with MailChimp for Connexions
- * Version: 0.3
+ * Version: 0.3.1
  * Author: Brown Box
  * Author URI: http://brownbox.net.au
  * License: Proprietary Brown Box
  */
-require_once (plugin_dir_path(__FILE__).'mailchimp-api-php/Mailchimp.php');
-require_once (plugin_dir_path(__FILE__).'mailchimp-api-php/Mailchimp-o.php');
-require_once (plugin_dir_path(__FILE__).'fx.php');
-require_once (plugin_dir_path(__FILE__).'settings.php');
-
+define('BBCONNECT_MAILCHIMP_VERSION', '0.3.1');
 define('BBCONNECT_MAILCHIMP_API_KEY', get_option('bbconnect_mailchimp_api_key'));
 define('BBCONNECT_MAILCHIMP_LIST_ID', get_option('bbconnect_mailchimp_list_id'));
+
+require_once (plugin_dir_path(__FILE__).'mailchimp-api-php/Mailchimp.php');
+require_once (plugin_dir_path(__FILE__).'mailchimp-api-php/Mailchimp-o.php');
+require_once (plugin_dir_path(__FILE__).'db.php');
+require_once (plugin_dir_path(__FILE__).'fx.php');
+require_once (plugin_dir_path(__FILE__).'settings.php');
 
 function bbconnect_mailchimp_init() {
     if (!defined('BBCONNECT_VER') || version_compare(BBCONNECT_VER, '2.5.1', '<')) {

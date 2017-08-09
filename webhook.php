@@ -93,6 +93,8 @@ if (isset($_POST['type'])) {
                     }
                 }
 
+                bbconnect_mailchimp_maybe_push_personalisation_key($user_id);
+
                 if ($type != 'unsubscribe') { // If they're still subscribed, sync mapped groups
                     $mapped_category = get_option('bbconnect_mailchimp_channels_group');
                     if (!empty($mapped_category)) {

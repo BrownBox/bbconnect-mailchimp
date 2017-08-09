@@ -278,6 +278,41 @@ function bbconnect_mailchimp_pull_all_user_groups() {
     }
 }
 
+/**
+ * If personalisation module is running, push key to MC
+ * @param integer $user_id
+ */
+function bbconnect_mailchimp_maybe_push_personalisation_key($user_id) {
+    if (function_exists('bbconnect_personalisation_get_key_for_user')) {
+        // Push personalisation key to MC
+        $key = bbconnect_personalisation_get_key_for_user($user_id);
+        if (!empty($key)) {
+            try {
+                $lists = $mailchimp->helper->listsForEmail(array('email' => $email));
+                if (is_array($lists)) {
+                    foreach ($lists as $list) {
+                        $mailchimp_Lists->updateMember($list['id'], array('email' => $email), array('KEY' => $key), '', false);
+                    }
+                }
+            } catch (Mailchimp_Error $e) {
+                // Do nothing
+            }
+        }
+    }
+}
+
+/**
+ * If personalisation module is running, push key for all users to MC
+ */
+function bbconnect_mailchimp_maybe_push_all_personalisation_keys() {
+    if (function_exists('bbconnect_personalisation_get_key_for_user')) {
+        $users = get_users();
+        foreach ($users as $user) {
+            bbconnect_mailchimp_maybe_push_personalisation_key($user->ID);
+        }
+    }
+}
+
 add_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10, 5);
 /**
  * Sync modified user meta to MailChimp. Runs on update_user_metadata hook.
@@ -297,10 +332,6 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
             'FNAME' => 'first_name',
             'LNAME' => 'last_name',
     ));
-
-    if (!in_array($meta_key, $mailchimp_fields) && strpos($meta_key, 'mailchimp_group') === false) {
-        return null; // Tells WP to continue with saving the meta data
-    }
 
     $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
     $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
@@ -345,7 +376,7 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
             bbconnect_mailchimp_pull_user_groups($user_id, $meta_key);
             return false; // Don't want WP to keep saving as we've already updated it
         }
-    } else {
+    } elseif (in_array($meta_key, $mailchimp_fields)) {
         if ($meta_key == 'bbconnect_address_country_1') {
             $bbconnect_helper_country = bbconnect_helper_country();
             $meta_value = $bbconnect_helper_country[$meta_value];
@@ -355,7 +386,10 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
         } catch (Mailchimp_Error $e) {
             // Do nothing
         }
+    } elseif ($meta_key == 'bbconnect_personalisation_key') { // Send personalisation key to MC
+        bbconnect_mailchimp_maybe_push_personalisation_key($user_id);
     }
+
     return null; // Tells WP to continue with saving the meta data
 }
 
