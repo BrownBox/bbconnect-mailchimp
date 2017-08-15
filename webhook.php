@@ -20,8 +20,12 @@ if (isset($_POST['type'])) {
     }
     // HACK OVER. You can relax now.
 
-    $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
-    $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+    try {
+        $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
+        $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+    } catch (BB\Mailchimp\Mailchimp_Error $e) {
+        return;
+    }
     if (isset($_POST['data']['list_id'])) {
         $list_details = $mailchimp_lists->getList(array('list_id' => $_POST['data']['list_id']));
         $list_details = array_shift($list_details['data']);

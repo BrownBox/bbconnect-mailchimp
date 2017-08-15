@@ -54,6 +54,7 @@ function bbconnect_mailchimp_settings() {
 
 add_action('bbconnect_options_save_ext', 'bbconnect_mailchimp_save_settings');
 function bbconnect_mailchimp_save_settings() {
+    // Set up group syncing
     $current_group = get_option('bbconnect_mailchimp_channels_group');
     $submitted_group = $_POST['_bbc_option']['bbconnect_mailchimp_channels_group'];
 

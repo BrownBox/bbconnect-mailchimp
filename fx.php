@@ -46,56 +46,64 @@ function bbconnect_mailchimp_delete_group_fields($delete_category) {
  * @param string $create_category
  */
 function bbconnect_mailchimp_create_group_fields($create_category) {
-    $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
-    $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
-    $group_categories = $mailchimp_lists->interestGroupings(BBCONNECT_MAILCHIMP_LIST_ID);
+    try {
+        $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
+        $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+    } catch (BB\Mailchimp\Mailchimp_Error $e) {
+        return;
+    }
+    try {
+        $group_categories = $mailchimp_lists->interestGroupings(BBCONNECT_MAILCHIMP_LIST_ID);
 
-    foreach ($group_categories as $category) {
-        if ($category['name'] == $create_category) {
-            update_option('bbconnect_mailchimp_current_groups', $category['groups'], false);
-            wp_schedule_single_event(time()+10, 'bbconnect_mailchimp_pull_all_user_groups'); // Run 10 seconds from now just to be sure all the changes have gone through
-            // Add fields
-            $fields = array();
-            foreach ($category['groups'] as $group) {
-                $fields[] = array('source' => 'bbconnect', 'meta_key' => 'mailchimp_group_'.bbconnect_mailchimp_clean_group_name($create_category, $group['name']), 'tag' => '', 'name' => $create_category.': '.$group['name'], 'options' => array('admin' => true, 'user' => true, 'signup' => false, 'reports' => true, 'public' => false, 'req' => false, 'field_type' => 'checkbox', 'choices' => array('false')), 'help' => '');
-            }
-            $field_keys = array();
+        foreach ($group_categories as $category) {
+            if ($category['name'] == $create_category) {
+                update_option('bbconnect_mailchimp_current_groups', $category['groups'], false);
+                wp_schedule_single_event(time()+10, 'bbconnect_mailchimp_pull_all_user_groups'); // Run 10 seconds from now just to be sure all the changes have gone through
+                // Add fields
+                $fields = array();
+                foreach ($category['groups'] as $group) {
+                    $fields[] = array('source' => 'bbconnect', 'meta_key' => 'mailchimp_group_'.bbconnect_mailchimp_clean_group_name($create_category, $group['name']), 'tag' => '', 'name' => $create_category.': '.$group['name'], 'options' => array('admin' => true, 'user' => true, 'signup' => false, 'reports' => true, 'public' => false, 'req' => false, 'field_type' => 'checkbox', 'choices' => array('false')), 'help' => '');
+                }
+                $field_keys = array();
 
-            foreach ($fields as $key => $value) {
-                if (false != get_option('bbconnect_'.$value['meta_key'])) {
-                    continue;
+                foreach ($fields as $key => $value) {
+                    if (false != get_option('bbconnect_'.$value['meta_key'])) {
+                        continue;
+                    }
+
+                    $field_keys[] = $value['meta_key'];
+                    add_option('bbconnect_'.$value['meta_key'], $value);
                 }
 
-                $field_keys[] = $value['meta_key'];
-                add_option('bbconnect_'.$value['meta_key'], $value);
-            }
-
-            $umo = get_option('_bbconnect_user_meta');
-            if (!empty($field_keys)) {
-                foreach ($umo as $uk => $uv) {
-                    // Add to the preferences section
-                    foreach ($uv as $suk => $suv) {
-                        if ('bbconnect_preferences' == $suv) {
-                            $acct = get_option($suv);
-                            foreach ($field_keys as $fk => $fv) {
-                                $acct['options']['choices'][] = $fv;
+                $umo = get_option('_bbconnect_user_meta');
+                if (!empty($field_keys)) {
+                    foreach ($umo as $uk => $uv) {
+                        // Add to the preferences section
+                        foreach ($uv as $suk => $suv) {
+                            if ('bbconnect_preferences' == $suv) {
+                                $acct = get_option($suv);
+                                foreach ($field_keys as $fk => $fv) {
+                                    $acct['options']['choices'][] = $fv;
+                                }
+                                update_option($suv, $acct);
+                                $aok = true;
+                                break(2);
                             }
-                            update_option($suv, $acct);
-                            $aok = true;
-                            break(2);
                         }
                     }
-                }
-                // If we couldn't find the preferences section just add to column 3
-                if (!isset($aok)) {
-                    foreach ($field_keys as $fk => $fv) {
-                        $umo['column_3'][] = 'bbconnect_' . $fv;
-                    }
+                    // If we couldn't find the preferences section just add to column 3
+                    if (!isset($aok)) {
+                        foreach ($field_keys as $fk => $fv) {
+                            $umo['column_3'][] = 'bbconnect_' . $fv;
+                        }
 
-                    update_option('_bbconnect_user_meta', $umo);
+                        update_option('_bbconnect_user_meta', $umo);
+                    }
                 }
             }
         }
+    } catch (BB\Mailchimp\Mailchimp_Error $e) {
+        // Do nothing
     }
 }
 
@@ -105,17 +113,19 @@ if (!function_exists('subscribe_to_mailchimp')) { // backwards compatibility
      * @deprecated
      * @see bbconnect_mailchimp_subscribe_user()
      * @param integer $user_id
+     * @param boolean $force
      */
-    function subscribe_to_mailchimp($user_id) {
-        return bbconnect_mailchimp_subscribe_user($user_id);
+    function subscribe_to_mailchimp($user_id, $force = false) {
+        return bbconnect_mailchimp_subscribe_user($user_id, $false);
     }
 }
 
 /**
  * Subscribe user to MailChimp
- * @param integer $user_id
+ * @param integer $user_id User to subscribe
+ * @param boolean $force Optional. Whether to force them to resubscribe if they've previously unsubscribed. Default false (will not resubscribe unsubscribed users).
  */
-function bbconnect_mailchimp_subscribe_user($user_id) {
+function bbconnect_mailchimp_subscribe_user($user_id, $force = false) {
     $user = get_user_by('id', $user_id);
     $firstname = get_user_meta($user_id, 'first_name', true);
     $lastname = get_user_meta($user_id, 'last_name', true);
@@ -130,8 +140,12 @@ function bbconnect_mailchimp_subscribe_user($user_id) {
 
     $email = $user->user_email;
 
-    $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
-    $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+    try {
+        $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
+        $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+    } catch (BB\Mailchimp\Mailchimp_Error $e) {
+        return;
+    }
     try {
         $params = array(
                 'id' => BBCONNECT_MAILCHIMP_LIST_ID,
@@ -143,7 +157,7 @@ function bbconnect_mailchimp_subscribe_user($user_id) {
         );
         $is_User_Registered = $mailchimp->call('lists/member-info', $params);
 
-        if ($is_User_Registered['success_count'] == 0 || ($is_User_Registered['success_count'] != 0 && $is_User_Registered['data'][0]['status'] != 'subscribed' && $is_User_Registered['data'][0]['status'] != 'unsubscribed')) {
+        if ($is_User_Registered['success_count'] == 0 || ($is_User_Registered['success_count'] != 0 && $is_User_Registered['data'][0]['status'] != 'subscribed' && ($is_User_Registered['data'][0]['status'] != 'unsubscribed' || $force))) {
             $mc_email = array(
                     'email' => $email
             );
@@ -163,7 +177,6 @@ function bbconnect_mailchimp_subscribe_user($user_id) {
         }
     } catch (BB\Mailchimp\Mailchimp_Error $e) {
         // Something went wrong
-        return;
     }
 }
 
@@ -180,8 +193,12 @@ function bbconnect_mailchimp_push_user_groups($user, $old_user_data = null) {
         }
         $email = $user->user_email;
 
-        $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
-        $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+        try {
+            $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
+            $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+        } catch (BB\Mailchimp\Mailchimp_Error $e) {
+            return;
+        }
         try {
             // Get user details from MailChimp so we don't lose any non-mapped group settings
             $user_registered = $mailchimp_lists->memberInfo(BBCONNECT_MAILCHIMP_LIST_ID, array(array('email' => $email)));
@@ -207,7 +224,7 @@ function bbconnect_mailchimp_push_user_groups($user, $old_user_data = null) {
                 $groupings[] = $this_grouping;
             }
             $mailchimp_lists->updateMember(BBCONNECT_MAILCHIMP_LIST_ID, array('email' => $email), array('groupings' => $groupings), '', true);
-        } catch (Mailchimp_Error $e) {
+        } catch (BB\Mailchimp\Mailchimp_Error $e) {
              // Do nothing
         }
     }
@@ -226,44 +243,53 @@ function bbconnect_mailchimp_pull_user_groups($user, $meta_key = '') {
         }
         $email = $user->user_email;
 
-        $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
-        $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+        try {
+            $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
+            $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+        } catch (BB\Mailchimp\Mailchimp_Error $e) {
+            return;
+        }
 
-        $user_registered = $mailchimp_lists->memberInfo(BBCONNECT_MAILCHIMP_LIST_ID, array(array('email' => $email)));
         remove_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10); // Don't want to trigger the filter again otherwise we'll end up in an endless loop
-        if (empty($user_registered['status'])) { // No errors
-            $field_keys = array();
-            if (empty($meta_key)) {
-                $groups = get_option('bbconnect_mailchimp_current_groups');
-                foreach ($groups as $group) {
-                    $field_keys[] = 'bbconnect_mailchimp_group_'.bbconnect_mailchimp_clean_group_name($mapped_category, $group['name']);
+        try {
+            $user_registered = $mailchimp_lists->memberInfo(BBCONNECT_MAILCHIMP_LIST_ID, array(array('email' => $email)));
+            if (empty($user_registered['status'])) { // No errors
+                $field_keys = array();
+                if (empty($meta_key)) {
+                    $groups = get_option('bbconnect_mailchimp_current_groups');
+                    foreach ($groups as $group) {
+                        $field_keys[] = 'bbconnect_mailchimp_group_'.bbconnect_mailchimp_clean_group_name($mapped_category, $group['name']);
+                    }
+                } else {
+                    $field_keys[] = $meta_key;
                 }
-            } else {
-                $field_keys[] = $meta_key;
-            }
 
-            foreach ($field_keys as $field_key) {
-                if ($user_registered['success_count'] != 0 && $user_registered['data'][0]['status'] == 'subscribed') { // Subscribed
-                    // They're subscribed to MC, check groups to see which ones are selected
-                    $group_selected = false;
-                    foreach ($user_registered['data'][0]['merges']['GROUPINGS'] as $grouping) {
-                        foreach ($grouping['groups'] as $group) {
-                            if ('bbconnect_mailchimp_group_'.bbconnect_mailchimp_clean_group_name($grouping['name'], $group['name']) == $field_key) {
-                                $group_selected = $group['interested'];
-                                break(2);
+                foreach ($field_keys as $field_key) {
+                    if ($user_registered['success_count'] != 0 && $user_registered['data'][0]['status'] == 'subscribed') { // Subscribed
+                        // They're subscribed to MC, check groups to see which ones are selected
+                        $group_selected = false;
+                        foreach ($user_registered['data'][0]['merges']['GROUPINGS'] as $grouping) {
+                            foreach ($grouping['groups'] as $group) {
+                                if ('bbconnect_mailchimp_group_'.bbconnect_mailchimp_clean_group_name($grouping['name'], $group['name']) == $field_key) {
+                                    $group_selected = $group['interested'];
+                                    break(2);
+                                }
                             }
                         }
+                        update_user_meta($user->ID, $field_key, $group_selected ? 'true' : 'false');
+                    } else { // Not subscribed at all
+                        update_user_meta($user->ID, $field_key, 'false');
                     }
-                    update_user_meta($user->ID, $field_key, $group_selected ? 'true' : 'false');
-                } else { // Not subscribed at all
-                    update_user_meta($user->ID, $field_key, 'false');
                 }
             }
+        } catch (BB\Mailchimp\Mailchimp_Error $e) {
+            // Do nothing
         }
         add_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10, 5);
     }
 }
 
+add_action('bbconnect_mailchimp_pull_all_user_groups', 'bbconnect_mailchimp_pull_all_user_groups');
 /**
  * Update user meta for all users based on mapped groups in MailChimp.
  * You shouldn't ever need to call this function directly - it is run automatically any time mapped fields are created/updated.
@@ -271,8 +297,10 @@ function bbconnect_mailchimp_pull_user_groups($user, $meta_key = '') {
 function bbconnect_mailchimp_pull_all_user_groups() {
     $mapped_category = get_option('bbconnect_mailchimp_channels_group');
     if (!empty($mapped_category)) {
+        set_time_limit(600);
         $users = get_users();
         foreach ($users as $user) {
+            set_time_limit(300);
             bbconnect_mailchimp_pull_user_groups($user);
         }
     }
@@ -280,35 +308,47 @@ function bbconnect_mailchimp_pull_all_user_groups() {
 
 /**
  * If personalisation module is running, push key to MC
- * @param integer $user_id
+ * @param WP_User|integer $user User to update. Can be either user ID or WP_User object.
+ * @param string $key Optional. Key to push to MailChimp.
  */
-function bbconnect_mailchimp_maybe_push_personalisation_key($user_id) {
+function bbconnect_mailchimp_maybe_push_personalisation_key($user, $key = null) {
     if (function_exists('bbconnect_personalisation_get_key_for_user')) {
         // Push personalisation key to MC
-        $key = bbconnect_personalisation_get_key_for_user($user_id);
+        if (empty($key)) {
+            $key = bbconnect_personalisation_get_key_for_user($user);
+        }
         if (!empty($key)) {
+            if (is_numeric($user)) {
+                $user = get_user_by('id', $user);
+            }
+            $email = $user->user_email;
             try {
+                $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
+                $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
                 $lists = $mailchimp->helper->listsForEmail(array('email' => $email));
                 if (is_array($lists)) {
                     foreach ($lists as $list) {
-                        $mailchimp_Lists->updateMember($list['id'], array('email' => $email), array('KEY' => $key), '', false);
+                        $mailchimp_lists->updateMember($list['id'], array('email' => $email), array('KEY' => $key), '', false);
                     }
                 }
-            } catch (Mailchimp_Error $e) {
+            } catch (BB\Mailchimp\Mailchimp_Error $e) {
                 // Do nothing
             }
         }
     }
 }
 
+add_action('bbconnect_mailchimp_maybe_push_all_personalisation_keys', 'bbconnect_mailchimp_maybe_push_all_personalisation_keys');
 /**
- * If personalisation module is running, push key for all users to MC
+ * If personalisation module is running, push key for all users to MC. Don't ever call this function manually - it will be triggered automatically when the plugin is successfully connected to MailChimp.
  */
 function bbconnect_mailchimp_maybe_push_all_personalisation_keys() {
     if (function_exists('bbconnect_personalisation_get_key_for_user')) {
+        set_time_limit(600);
         $users = get_users();
         foreach ($users as $user) {
-            bbconnect_mailchimp_maybe_push_personalisation_key($user->ID);
+            set_time_limit(300);
+            bbconnect_mailchimp_maybe_push_personalisation_key($user);
         }
     }
 }
@@ -333,8 +373,12 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
             'LNAME' => 'last_name',
     ));
 
-    $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
-    $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+    try {
+        $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
+        $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+    } catch (BB\Mailchimp\Mailchimp_Error $e) {
+        return null;
+    }
     if ($meta_key == 'bbconnect_pp_subscription') {
         if (empty($prev_value)) { // The existing value often doesn't get passed through so we'll grab it ourselves
             $prev_value = get_user_meta($user_id, $meta_key, true);
@@ -343,27 +387,31 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
             if ($meta_value == 'false') {
                 try {
                     $mailchimp_lists->unsubscribe(BBCONNECT_MAILCHIMP_LIST_ID, array('email' => $email));
-                } catch (Mailchimp_Error $e) {
+                } catch (BB\Mailchimp\Mailchimp_Error $e) {
                     // Do nothing
                 }
             } elseif ($meta_value == 'true') {
                 bbconnect_mailchimp_subscribe_user($user_id, true);
             }
         } elseif (empty($prev_value)) { // We had no meta, check MC to see whether they're subscribed
-            $is_registered = $mailchimp->call('lists/member-info', array(
-                    'id'        => BBCONNECT_MAILCHIMP_LIST_ID,
-                    'emails'    => array(array('email' => $email))
-            ));
+            try {
+                $is_registered = $mailchimp->call('lists/member-info', array(
+                        'id'        => BBCONNECT_MAILCHIMP_LIST_ID,
+                        'emails'    => array(array('email' => $email))
+                ));
 
-            remove_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10); // Don't want to trigger this filter again otherwise we'll end up in an endless loop
-            if (empty($is_registered['status'])) { // No errors
-                if ($is_registered['success_count'] != 0 && $is_registered['data'][0]['status'] == 'subscribed') { // Subscribed
-                    update_user_meta($user_id, 'envoyconnect_pp_subscription', 'true');
-                } else { // Not subscribed
-                    update_user_meta($user_id, 'envoyconnect_pp_subscription', 'false');
+                remove_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10); // Don't want to trigger this filter again otherwise we'll end up in an endless loop
+                if (empty($is_registered['status'])) { // No errors
+                    if ($is_registered['success_count'] != 0 && $is_registered['data'][0]['status'] == 'subscribed') { // Subscribed
+                        update_user_meta($user_id, 'bbconnect_pp_subscription', 'true');
+                    } else { // Not subscribed
+                        update_user_meta($user_id, 'bbconnect_pp_subscription', 'false');
+                    }
                 }
+                add_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10, 5);
+            } catch (BB\Mailchimp\Mailchimp_Error $e) {
+                // Do nothing
             }
-            add_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10, 5);
             return false; // Don't want WP to keep saving as we've already updated it
         }
     } elseif (strpos($meta_key, 'mailchimp_group') !== false) {
@@ -383,11 +431,11 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
         }
         try {
             $mailchimp_lists->updateMember(BBCONNECT_MAILCHIMP_LIST_ID, array('email' => $email), array(array_search($meta_key, $mailchimp_fields) => $meta_value), '', false);
-        } catch (Mailchimp_Error $e) {
+        } catch (BB\Mailchimp\Mailchimp_Error $e) {
             // Do nothing
         }
     } elseif ($meta_key == 'bbconnect_personalisation_key') { // Send personalisation key to MC
-        bbconnect_mailchimp_maybe_push_personalisation_key($user_id);
+        bbconnect_mailchimp_maybe_push_personalisation_key($user_id, $meta_value);
     }
 
     return null; // Tells WP to continue with saving the meta data
@@ -405,18 +453,22 @@ function bbconnect_mailchimp_email_update($user_id, $old_user_data) {
     $old_email = $old_user_data->user_email;
     if (!empty($new_email) && !empty($old_email) && $new_email != $old_email) {
         // Changing email address is tricky...
-        $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
-        $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
-        $mc_info = $mailchimp->call('lists/member-info', array(
-                'id'        => BBCONNECT_MAILCHIMP_LIST_ID,
-                'emails'    => array(array('email' => $old_email))
-        ));
-        if (empty($mc_info['status']) && $mc_info['success_count'] > 0) { // Found them!
-            try {
+        try {
+            $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
+            $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+        } catch (BB\Mailchimp\Mailchimp_Error $e) {
+            return;
+        }
+        try {
+            $mc_info = $mailchimp->call('lists/member-info', array(
+                    'id'        => BBCONNECT_MAILCHIMP_LIST_ID,
+                    'emails'    => array(array('email' => $old_email))
+            ));
+            if (empty($mc_info['status']) && $mc_info['success_count'] > 0) { // Found them!
                 $mailchimp_lists->updateMember(BBCONNECT_MAILCHIMP_LIST_ID, array('email' => $old_email), array('NEW-EMAIL' => $new_email), '', false);
-            } catch (Mailchimp_Error $e) {
-                // Do nothing
             }
+        } catch (BB\Mailchimp\Mailchimp_Error $e) {
+            // Do nothing
         }
     }
 }
@@ -429,19 +481,27 @@ add_action('bbconnect_mailchimp_do_daily_updates', 'bbconnect_mailchimp_daily_up
 function bbconnect_mailchimp_daily_updates() {
     $mapped_category = get_option('bbconnect_mailchimp_channels_group');
     if (!empty($mapped_category)) {
-        $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
-        $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
-        $group_categories = $mailchimp_lists->interestGroupings(BBCONNECT_MAILCHIMP_LIST_ID);
+        try {
+            $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
+            $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+        } catch (BB\Mailchimp\Mailchimp_Error $e) {
+            return;
+        }
+        try {
+            $group_categories = $mailchimp_lists->interestGroupings(BBCONNECT_MAILCHIMP_LIST_ID);
 
-        foreach ($group_categories as $category) {
-            if ($category['name'] == $mapped_category) {
-                if ($category['groups'] != get_option('bbconnect_mailchimp_current_groups')) { // Something has changed - remove the current fields and create new ones
-                    bbconnect_mailchimp_delete_group_fields($mapped_category);
-                    bbconnect_mailchimp_create_group_fields($mapped_category);
-                    bbconnect_mailchimp_pull_all_user_groups();
+            foreach ($group_categories as $category) {
+                if ($category['name'] == $mapped_category) {
+                    if ($category['groups'] != get_option('bbconnect_mailchimp_current_groups')) { // Something has changed - remove the current fields and create new ones
+                        bbconnect_mailchimp_delete_group_fields($mapped_category);
+                        bbconnect_mailchimp_create_group_fields($mapped_category);
+                        bbconnect_mailchimp_pull_all_user_groups();
+                    }
+                    break;
                 }
-                break;
             }
+        } catch (BB\Mailchimp\Mailchimp_Error $e) {
+            // Do nothing
         }
     }
 }

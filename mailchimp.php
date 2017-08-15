@@ -3,12 +3,12 @@
  * Plugin Name: Connexions MailChimp
  * Plugin URI: n/a
  * Description: An addon to provide a bridge to connect with MailChimp for Connexions
- * Version: 0.3.1
+ * Version: 0.3.2
  * Author: Brown Box
  * Author URI: http://brownbox.net.au
  * License: Proprietary Brown Box
  */
-define('BBCONNECT_MAILCHIMP_VERSION', '0.3.1');
+define('BBCONNECT_MAILCHIMP_VERSION', '0.3.2');
 define('BBCONNECT_MAILCHIMP_API_KEY', get_option('bbconnect_mailchimp_api_key'));
 define('BBCONNECT_MAILCHIMP_LIST_ID', get_option('bbconnect_mailchimp_list_id'));
 
@@ -26,7 +26,16 @@ function bbconnect_mailchimp_init() {
     }
 
     if (is_admin()) {
+        // DB updates
+        bbconnect_mailchimp_updates();
+        // Plugin updates
         new BbConnectUpdates(__FILE__, 'BrownBox', 'bbconnect-mailchimp');
+    }
+
+    // Push personalisation keys to MC if personalisation module is present and we haven't pushed them yet
+    if (!empty(BBCONNECT_MAILCHIMP_API_KEY) && function_exists('bbconnect_personalisation_get_key_for_user') && !get_option('bbconnect_mailchimp_personalisation_keys_pushed')) {
+        add_option('bbconnect_mailchimp_personalisation_keys_pushed', true);
+        wp_schedule_single_event(time()-24*HOUR_IN_SECONDS, 'bbconnect_personalisation_generate_keys_for_all_users');
     }
 
     if (!wp_next_scheduled('bbconnect_mailchimp_do_daily_updates')) {
