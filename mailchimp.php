@@ -1,14 +1,14 @@
 <?php
 /**
  * Plugin Name: Connexions MailChimp
- * Plugin URI: n/a
+ * Plugin URI: http://connexionscrm.com/
  * Description: An addon to provide a bridge to connect with MailChimp for Connexions
- * Version: 0.3.2
+ * Version: 0.3.3
  * Author: Brown Box
  * Author URI: http://brownbox.net.au
  * License: Proprietary Brown Box
  */
-define('BBCONNECT_MAILCHIMP_VERSION', '0.3.2');
+define('BBCONNECT_MAILCHIMP_VERSION', '0.3.3');
 define('BBCONNECT_MAILCHIMP_API_KEY', get_option('bbconnect_mailchimp_api_key'));
 define('BBCONNECT_MAILCHIMP_LIST_ID', get_option('bbconnect_mailchimp_list_id'));
 
@@ -55,6 +55,12 @@ function bbconnect_mailchimp_deactivate_notice() {
     echo '<div class="updated"><p><strong>Connexions MailChimp</strong> has been <strong>deactivated</strong> as it requires Connexions (v2.5.1 or higher).</p></div>';
     if (isset($_GET['activate']))
         unset($_GET['activate']);
+}
+
+add_filter('bbconnect_activity_types', 'bbconnect_mailchimp_activity_types');
+function bbconnect_mailchimp_activity_types($types) {
+    $types['mailchimp'] = 'MailChimp';
+    return $types;
 }
 
 add_filter('bbconnect_activity_icon', 'bbconnect_mailchimp_activity_icon', 10, 2);
