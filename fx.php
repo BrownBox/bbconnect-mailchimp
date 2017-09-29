@@ -140,6 +140,8 @@ function bbconnect_mailchimp_subscribe_user($user_id, $force = false) {
 
     $email = $user->user_email;
 
+    $groupings = apply_filters('bbconnect_mailchimp_default_groupings', array());
+
     try {
         $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
         $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
@@ -168,7 +170,8 @@ function bbconnect_mailchimp_subscribe_user($user_id, $force = false) {
                     'city' => $city,
                     'state' => $state,
                     'zip' => $postal_code,
-                    'country' => $country
+                    'country' => $country,
+                    'groupings' => $groupings,
             );
             $subscriber = $mailchimp_lists->subscribe(BBCONNECT_MAILCHIMP_LIST_ID, $mc_email, $merge_vars, '', false, false, false, false);
             if (empty($subscriber['leid'])) {
