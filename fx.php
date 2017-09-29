@@ -116,7 +116,7 @@ if (!function_exists('subscribe_to_mailchimp')) { // backwards compatibility
      * @param boolean $force
      */
     function subscribe_to_mailchimp($user_id, $force = false) {
-        return bbconnect_mailchimp_subscribe_user($user_id, $false);
+        return bbconnect_mailchimp_subscribe_user($user_id, $force);
     }
 }
 
