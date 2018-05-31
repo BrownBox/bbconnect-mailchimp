@@ -23,12 +23,12 @@ if (isset($_POST['type'])) {
     try {
         $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
         $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+        if (isset($_POST['data']['list_id'])) {
+            $list_details = $mailchimp_lists->getList(array('list_id' => $_POST['data']['list_id']));
+            $list_details = array_shift($list_details['data']);
+        }
     } catch (BB\Mailchimp\Mailchimp_Error $e) {
         return;
-    }
-    if (isset($_POST['data']['list_id'])) {
-        $list_details = $mailchimp_lists->getList(array('list_id' => $_POST['data']['list_id']));
-        $list_details = array_shift($list_details['data']);
     }
 
     if (!empty($_POST['data']['merges']['EMAIL']) || !empty($_POST['data']['old_email'])) {
@@ -102,22 +102,26 @@ if (isset($_POST['type'])) {
                 if ($type != 'unsubscribe') { // If they're still subscribed, sync mapped groups
                     $mapped_category = get_option('bbconnect_mailchimp_channels_group');
                     if (!empty($mapped_category)) {
-                        $group_categories = $mailchimp_lists->interestGroupings(BBCONNECT_MAILCHIMP_LIST_ID);
-                        foreach ($group_categories as $category) {
-                            if ($category['name'] == $mapped_category) {
-                                foreach ($_POST['data']['merges']['GROUPINGS'] as $grouping) {
-                                    if ($grouping['name'] == $mapped_category) {
-                                        foreach ($category['groups'] as $group) {
-                                            $meta_key = 'bbconnect_mailchimp_group_'.bbconnect_mailchimp_clean_group_name($grouping['name'], $group['name']);
-                                            if (strpos($grouping['groups'], $group['name']) !== false) {
-                                                update_user_meta($user_id, $meta_key, 'true');
-                                            } else {
-                                                update_user_meta($user_id, $meta_key, 'false');
+                        try {
+                            $group_categories = $mailchimp_lists->interestGroupings(BBCONNECT_MAILCHIMP_LIST_ID);
+                            foreach ($group_categories as $category) {
+                                if ($category['name'] == $mapped_category) {
+                                    foreach ($_POST['data']['merges']['GROUPINGS'] as $grouping) {
+                                        if ($grouping['name'] == $mapped_category) {
+                                            foreach ($category['groups'] as $group) {
+                                                $meta_key = 'bbconnect_mailchimp_group_'.bbconnect_mailchimp_clean_group_name($grouping['name'], $group['name']);
+                                                if (strpos($grouping['groups'], $group['name']) !== false) {
+                                                    update_user_meta($user_id, $meta_key, 'true');
+                                                } else {
+                                                    update_user_meta($user_id, $meta_key, 'false');
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
+                        } catch (BB\Mailchimp\Mailchimp_Error $e) {
+                            // Do nothing
                         }
                     }
                 }
