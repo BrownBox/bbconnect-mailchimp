@@ -14,7 +14,7 @@ function bbconnect_mailchimp_clean_group_name($category, $group) {
  * @param string $delete_category
  */
 function bbconnect_mailchimp_delete_group_fields($delete_category) {
-    $groups = get_option('bbconnect_mailchimp_current_groups');
+    $groups = bbconnect_mailchimp_mapped_groups();
     $umo = get_option('_bbconnect_user_meta');
     foreach ($groups as $group) {
         // Remove fields
@@ -118,6 +118,10 @@ if (!function_exists('subscribe_to_mailchimp')) { // backwards compatibility
     function subscribe_to_mailchimp($user_id, $force = false) {
         return bbconnect_mailchimp_subscribe_user($user_id, $force);
     }
+}
+
+function bbconnect_mailchimp_mapped_groups() {
+    return get_option('bbconnect_mailchimp_current_groups');
 }
 
 /**
@@ -259,7 +263,7 @@ function bbconnect_mailchimp_pull_user_groups($user, $meta_key = '') {
             if (empty($user_registered['status'])) { // No errors
                 $field_keys = array();
                 if (empty($meta_key)) {
-                    $groups = get_option('bbconnect_mailchimp_current_groups');
+                    $groups = bbconnect_mailchimp_mapped_groups();
                     foreach ($groups as $group) {
                         $field_keys[] = 'bbconnect_mailchimp_group_'.bbconnect_mailchimp_clean_group_name($mapped_category, $group['name']);
                     }
@@ -495,7 +499,7 @@ function bbconnect_mailchimp_daily_updates() {
 
             foreach ($group_categories as $category) {
                 if ($category['name'] == $mapped_category) {
-                    if ($category['groups'] != get_option('bbconnect_mailchimp_current_groups')) { // Something has changed - remove the current fields and create new ones
+                    if ($category['groups'] != bbconnect_mailchimp_mapped_groups()) { // Something has changed - remove the current fields and create new ones
                         bbconnect_mailchimp_delete_group_fields($mapped_category);
                         bbconnect_mailchimp_create_group_fields($mapped_category);
                         bbconnect_mailchimp_pull_all_user_groups();

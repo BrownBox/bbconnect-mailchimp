@@ -13,6 +13,20 @@ function bbconnect_mailchimp_settings() {
             array(
                     'meta' => array(
                             'source' => 'bbconnect',
+                            'meta_key' => 'bbconnect_mailchimp_connection_title',
+                            'name' => __('Connection Settings', 'bbconnect'),
+                            'help' => '',
+                            'options' => array(
+                                    'field_type' => 'title',
+                                    'req' => false,
+                                    'public' => false,
+                                    'choices' => false,
+                            ),
+                    ),
+            ),
+            array(
+                    'meta' => array(
+                            'source' => 'bbconnect',
                             'meta_key' => 'bbconnect_mailchimp_list_id',
                             'name' => __('List ID', 'bbconnect'),
                             'help' => '',
@@ -49,6 +63,76 @@ function bbconnect_mailchimp_settings() {
                             ),
                     ),
             ),
+            array(
+                    'meta' => array(
+                            'source' => 'bbconnect',
+                            'meta_key' => 'bbconnect_mailchimp_subscription_title',
+                            'name' => __('Subscription Settings', 'bbconnect'),
+                            'help' => '',
+                            'options' => array(
+                                    'field_type' => 'title',
+                                    'req' => false,
+                                    'public' => false,
+                                    'choices' => false,
+                            ),
+                    ),
+            ),
+            array(
+                    'meta' => array(
+                            'source' => 'bbconnect',
+                            'meta_key' => 'bbconnect_mailchimp_optin_groups',
+                            'name' => __('Default Groups', 'bbconnect'),
+                            'help' => 'Select the groups (from the category you entered above) users should be added to by default',
+                            'options' => array(
+                                    'field_type' => 'plugin',
+                                    'req' => false,
+                                    'public' => false,
+                                    'choices' => 'bbconnect_mailchimp_mapped_group_options',
+                            ),
+                    ),
+            ),
+            array(
+                    'meta' => array(
+                            'source' => 'bbconnect',
+                            'meta_key' => 'bbconnect_mailchimp_enable_optin',
+                            'name' => __('Enable Opt-In Modal', 'bbconnect'),
+                            'help' => 'Tick this option to enable the opt-in modal.',
+                            'options' => array(
+                                    'field_type' => 'checkbox',
+                                    'req' => false,
+                                    'public' => false,
+                                    'choices' => false,
+                            ),
+                    ),
+            ),
+            array(
+                    'meta' => array(
+                            'source' => 'bbconnect',
+                            'meta_key' => 'bbconnect_mailchimp_optin_countries',
+                            'name' => __('Show Modal for Countries', 'bbconnect'),
+                            'help' => 'Select the countries you want the modal to be displayed in (if enabled).',
+                            'options' => array(
+                                    'field_type' => 'multiselect',
+                                    'req' => false,
+                                    'public' => false,
+                                    'choices' => bbconnect_helper_country(),
+                            ),
+                    ),
+            ),
+            array(
+                    'meta' => array(
+                            'source' => 'bbconnect',
+                            'meta_key' => 'bbconnect_mailchimp_optin_modal_content',
+                            'name' => __('Opt-In Modal Content', 'bbconnect'),
+                            'help' => 'Explain to the user what you want to subscribe them to and why they should choose to accept. HTML can be used if desired.',
+                            'options' => array(
+                                    'field_type' => 'textarea',
+                                    'req' => false,
+                                    'public' => false,
+                                    'choices' => false,
+                            ),
+                    ),
+            ),
     );
 }
 
@@ -69,4 +153,15 @@ function bbconnect_mailchimp_save_settings() {
             bbconnect_mailchimp_create_group_fields($submitted_group);
         }
     }
+}
+
+function bbconnect_mailchimp_mapped_group_options() {
+    $default_groups = get_option('bbconnect_mailchimp_optin_groups');
+    $groups = bbconnect_mailchimp_mapped_groups();
+    foreach ($groups as $group) {
+        $val = $default_groups[$group['id']] == 'true' ? 'true' : 'false';
+        $class = $val == 'true' ? 'on' : 'off';
+        echo '<a class="upt '.$class.'" title="bbconnect_mailchimp_optin_groups_'.$group['id'].'"><input type="hidden" id="bbconnect_mailchimp_optin_groups_'.$group['id'].'" name="_bbc_option[bbconnect_mailchimp_optin_groups]['.$group['id'].']" value="'.$val.'"> '.$group['name'].'</a> ';
+    }
+    echo '<br>';
 }
