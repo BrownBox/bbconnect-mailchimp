@@ -109,8 +109,8 @@ function bbconnect_mailchimp_settings() {
                     'meta' => array(
                             'source' => 'bbconnect',
                             'meta_key' => 'bbconnect_mailchimp_optin_countries',
-                            'name' => __('Show Modal for Countries', 'bbconnect'),
-                            'help' => 'Select the countries you want the modal to be displayed in (if enabled).',
+                            'name' => __('Show Modal for Countries (leave blank for all)', 'bbconnect'),
+                            'help' => 'Select the countries you want the modal to be displayed in (if enabled). If no countries are selected, it will be displayed in all countries.',
                             'options' => array(
                                     'field_type' => 'multiselect',
                                     'req' => false,

@@ -17,6 +17,7 @@ require_once (plugin_dir_path(__FILE__).'mailchimp-api-php/Mailchimp-o.php');
 require_once (plugin_dir_path(__FILE__).'db.php');
 require_once (plugin_dir_path(__FILE__).'fx.php');
 require_once (plugin_dir_path(__FILE__).'settings.php');
+require_once (plugin_dir_path(__FILE__).'forms.php');
 
 function bbconnect_mailchimp_init() {
     if (!defined('BBCONNECT_VER') || version_compare(BBCONNECT_VER, '2.5.1', '<')) {
