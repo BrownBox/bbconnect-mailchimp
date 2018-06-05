@@ -126,11 +126,13 @@ function bbconnect_mailchimp_mapped_groups() {
 
 /**
  * Subscribe user to MailChimp
- * @param integer $user_id User to subscribe
+ * @param integer|WP_User $user_id User to subscribe
  * @param boolean $force Optional. Whether to force them to resubscribe if they've previously unsubscribed. Default false (will not resubscribe unsubscribed users).
  */
-function bbconnect_mailchimp_subscribe_user($user_id, $force = false) {
-    $user = get_user_by('id', $user_id);
+function bbconnect_mailchimp_subscribe_user($user, $force = false) {
+    if (is_numeric($user)) {
+        $user = get_user_by('id', $user);
+    }
     $firstname = get_user_meta($user_id, 'first_name', true);
     $lastname = get_user_meta($user_id, 'last_name', true);
     $address1 = get_user_meta($user_id, 'bbconnect_address_one_1', true);
@@ -184,6 +186,79 @@ function bbconnect_mailchimp_subscribe_user($user_id, $force = false) {
         }
     } catch (BB\Mailchimp\Mailchimp_Error $e) {
         // Something went wrong
+    }
+}
+
+add_filter('bbconnect_mailchimp_default_groupings', 'bbconnect_mailchimp_default_groupings', 0);
+function bbconnect_mailchimp_default_groupings(array $groupings = array()) {
+    $default_groups = get_option('bbconnect_mailchimp_optin_groups');
+    $mapped_groups = bbconnect_mailchimp_mapped_groups();
+    $groups = array();
+    foreach ($mapped_groups as $mapped_group) {
+        if ($default_groups[$mapped_group['id']] == 'true') {
+            $groups[] = $mapped_group['name'];
+        }
+    }
+    if (!empty($groups)) {
+        $groupings[] = array(
+                'name' => get_option('bbconnect_mailchimp_channels_group'),
+                'groups' => $groups,
+        );
+    }
+    return $groupings;
+}
+
+/**
+ * Is user subscribed to MailChimp?
+ * @param integer|WP_User $user
+ * @return NULL|boolean Whether user is subscribed or null on failure to get status from MailChimp
+ */
+function bbconnect_mailchimp_is_user_subscribed($user) {
+    if (is_numeric($user)) {
+        $user = get_user_by('id', $user);
+    }
+    $email = $user->user_email;
+    try {
+        $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
+        $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
+    } catch (BB\Mailchimp\Mailchimp_Error $e) {
+        return null;
+    }
+    try {
+        $params = array(
+                'id' => BBCONNECT_MAILCHIMP_LIST_ID,
+                'emails' => array(
+                        array(
+                                'email' => $email
+                        )
+                )
+        );
+        $is_User_Registered = $mailchimp->call('lists/member-info', $params);
+
+        return $is_User_Registered['success_count'] > 0 && $is_User_Registered['data'][0]['status'] == 'subscribed';
+    } catch (BB\Mailchimp\Mailchimp_Error $e) {
+        return null;
+    }
+}
+
+/**
+ * Make sure a user's subscription preferences includes all of the default groups
+ * @param WP_User|integer $user User to update. Can be either user ID or WP_User object.
+ */
+function bbconnect_mailchimp_update_user_default_groups($user) {
+    $groupings = bbconnect_mailchimp_default_groupings();
+    if (!empty($groupings)) {
+        if (is_numeric($user)) {
+            $user = get_user_by('id', $user);
+        }
+        $email = $user->user_email;
+        foreach ($groupings as $grouping) {
+            foreach ($grouping['groups'] as $group) {
+                $meta_key = 'bbconnect_mailchimp_group_'.bbconnect_mailchimp_clean_group_name($grouping['name'], $group);
+                update_user_meta($user->ID, $meta_key, 'true');
+            }
+        }
+        bbconnect_mailchimp_push_user_groups($user);
     }
 }
 

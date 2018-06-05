@@ -95,8 +95,8 @@ function bbconnect_mailchimp_settings() {
                     'meta' => array(
                             'source' => 'bbconnect',
                             'meta_key' => 'bbconnect_mailchimp_enable_optin',
-                            'name' => __('Enable Opt-In Modal', 'bbconnect'),
-                            'help' => 'Tick this option to enable the opt-in modal.',
+                            'name' => __('Enable Subscribe Opt-In', 'bbconnect'),
+                            'help' => 'Tick this option to enable the opt-in messaging.',
                             'options' => array(
                                     'field_type' => 'checkbox',
                                     'req' => false,
@@ -109,8 +109,8 @@ function bbconnect_mailchimp_settings() {
                     'meta' => array(
                             'source' => 'bbconnect',
                             'meta_key' => 'bbconnect_mailchimp_optin_countries',
-                            'name' => __('Show Modal for Countries (leave blank for all)', 'bbconnect'),
-                            'help' => 'Select the countries you want the modal to be displayed in (if enabled). If no countries are selected, it will be displayed in all countries.',
+                            'name' => __('Show Opt-in for Countries (leave blank for all)', 'bbconnect'),
+                            'help' => 'Select the countries you want the subscribe opt-in to be displayed in (if enabled). If no countries are selected, it will be displayed in all countries.',
                             'options' => array(
                                     'field_type' => 'multiselect',
                                     'req' => false,
@@ -123,7 +123,7 @@ function bbconnect_mailchimp_settings() {
                     'meta' => array(
                             'source' => 'bbconnect',
                             'meta_key' => 'bbconnect_mailchimp_optin_modal_content',
-                            'name' => __('Opt-In Modal Content', 'bbconnect'),
+                            'name' => __('Opt-In Messaging', 'bbconnect'),
                             'help' => 'Explain to the user what you want to subscribe them to and why they should choose to accept. HTML can be used if desired.',
                             'options' => array(
                                     'field_type' => 'textarea',
