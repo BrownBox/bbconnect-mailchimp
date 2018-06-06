@@ -20,7 +20,7 @@ require_once (plugin_dir_path(__FILE__).'settings.php');
 require_once (plugin_dir_path(__FILE__).'forms.php');
 
 function bbconnect_mailchimp_init() {
-    if (!defined('BBCONNECT_VER') || version_compare(BBCONNECT_VER, '2.5.1', '<')) {
+    if (!defined('BBCONNECT_VER') || version_compare(BBCONNECT_VER, '2.8.1', '<')) {
         add_action('admin_init', 'bbconnect_mailchimp_deactivate');
         add_action('admin_notices', 'bbconnect_mailchimp_deactivate_notice');
         return;
@@ -53,7 +53,7 @@ function bbconnect_mailchimp_deactivate() {
 }
 
 function bbconnect_mailchimp_deactivate_notice() {
-    echo '<div class="updated"><p><strong>Connexions MailChimp</strong> has been <strong>deactivated</strong> as it requires Connexions (v2.5.1 or higher).</p></div>';
+    echo '<div class="updated"><p><strong>Connexions MailChimp</strong> has been <strong>deactivated</strong> as it requires Connexions (v2.8.1 or higher).</p></div>';
     if (isset($_GET['activate']))
         unset($_GET['activate']);
 }
