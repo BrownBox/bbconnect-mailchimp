@@ -8,7 +8,7 @@ function bbconnect_mailchimp_custom_form_setting($settings, $form) {
                 <td><label>
                     <select name="bbconnect_mailchimp_subscribe_type" id="bbconnect_mailchimp_subscribe_type">
                         <option value=""'.selected('', rgar($form, 'bbconnect_mailchimp_subscribe_type'), false).'>Modal (requires a theme built on Zurb Foundation)</option>
-                        <option value="form"'.selected('form', rgar($form, 'bbconnect_mailchimp_subscribe_type'), false).'>In-Form (not yet implemented)</option>
+                        <option value="form"'.selected('form', rgar($form, 'bbconnect_mailchimp_subscribe_type'), false).'>In-Form</option>
                         <option value="none"'.selected('none', rgar($form, 'bbconnect_mailchimp_subscribe_type'), false).'>None</option>
                     </select>
                     </label></td>
@@ -56,7 +56,56 @@ function bbconnect_mailchimp_subscribe_messaging($form) {
         $form_id = $form['id'];
         switch (rgar($form, 'bbconnect_mailchimp_subscribe_type')) {
             case 'form':
-                // @todo in-form messaging
+                // In-form messaging
+                add_filter('gform_submit_button_'.$form_id, function($button, $form) use ($form_id, $field_id) {
+                    ob_start();
+?>
+    <script>
+    if (typeof ajaxurl === 'undefined') {
+        var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
+    }
+    jQuery(document).ready(function() {
+        var submit_button = jQuery('#gform_submit_button_<?php echo $form_id; ?>');
+        submit_button.prop('disabled', true);
+        jQuery('input#input_<?php echo $form_id; ?>_<?php echo $field_id; ?>').blur(function() {
+            var email = jQuery(this).val();
+            if (email != '') {
+                jQuery.post(ajaxurl, {
+                    'action': 'bbconnect_mailchimp_optin_check',
+                    'email': email
+                }, function(response) {
+                    var show_optin = response == '';
+                    if (show_optin) {
+                        jQuery('#subscribe_in_form_<?php echo $form_id; ?>').show();
+                    } else {
+                        jQuery('#subscribe_in_form_<?php echo $form_id; ?>').hide();
+                    }
+                    submit_button.prop('disabled', show_optin);
+                });
+            }
+        });
+    });
+    function bb_mailchimp_subscription_select(value) {
+        jQuery('#subscribe_in_form_<?php echo $form_id; ?>').html('<p class="text-center"><img src="<?php echo plugins_url('gravityforms/images/spinner.gif'); ?>" alt="Please wait..."></p>');
+        jQuery.post(ajaxurl, {
+            'action': 'bbconnect_mailchimp_subscription_select',
+            'value': value
+        }, function(response) {
+            jQuery('#gform_submit_button_<?php echo $form_id; ?>').prop('disabled', false);
+            jQuery('#subscribe_in_form_<?php echo $form_id; ?>').hide();
+        });
+    }
+    </script>
+    <div class="subscribe-optin in-form" id="subscribe_in_form_<?php echo $form_id; ?>" style="display: none;">
+        <?php echo wpautop(stripslashes(get_option('bbconnect_mailchimp_optin_modal_content'))); ?>
+        <p class="text-center" id="subscribe_options">
+            <button onclick="bb_mailchimp_subscription_select('no'); return false;" class="button secondary hollow">No</button>
+            <button onclick="bb_mailchimp_subscription_select('yes'); return false;" class="button">Yes</button>
+        </p>
+    </div>
+<?php
+                    return ob_get_clean().$button;
+                }, 10, 2);
                 break;
             case '':
             default:
@@ -100,7 +149,7 @@ function bbconnect_mailchimp_subscribe_messaging($form) {
         });
     }
     </script>
-    <div class="subscribe-modal reveal small" id="subscribe_modal_<?php echo $form_id; ?>" data-reveal>
+    <div class="subscribe-optin reveal small" id="subscribe_modal_<?php echo $form_id; ?>" data-reveal>
         <?php echo wpautop(stripslashes(get_option('bbconnect_mailchimp_optin_modal_content'))); ?>
         <p class="text-center" id="subscribe_options">
             <button type="submit" onclick="bb_mailchimp_subscription_select('no');" class="button secondary hollow">No</button>
