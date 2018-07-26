@@ -128,6 +128,7 @@ function bbconnect_mailchimp_mapped_groups() {
  * Subscribe user to MailChimp
  * @param integer|WP_User $user_id User to subscribe
  * @param boolean $force Optional. Whether to force them to resubscribe if they've previously unsubscribed. Default false (will not resubscribe unsubscribed users).
+ * @return boolean|string True on success, error message on failure
  */
 function bbconnect_mailchimp_subscribe_user($user, $force = false) {
     if (is_numeric($user)) {
@@ -152,7 +153,7 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
         $mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
         $mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
     } catch (BB\Mailchimp\Mailchimp_Error $e) {
-        return;
+        return $e->getMessage();
     }
     try {
         $params = array(
@@ -181,13 +182,15 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
             );
             $subscriber = $mailchimp_lists->subscribe(BBCONNECT_MAILCHIMP_LIST_ID, $mc_email, $merge_vars, '', false, false, false, false);
             if (empty($subscriber['leid'])) {
-                // Something went wrong
+                return 'Failed to add subscriber';
             } else {
                 update_user_meta($user->ID, 'bbconnect_pp_subscription', 'true');
+                return true;
             }
         }
+        return 'Already subscribed';
     } catch (BB\Mailchimp\Mailchimp_Error $e) {
-        // Something went wrong
+        return $e->getMessage();
     }
 }
 
