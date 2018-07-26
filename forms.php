@@ -28,7 +28,7 @@ function bbconnect_mailchimp_save_form_setting($form) {
 function bbconnect_mailchimp_show_subscribe_on_form($form) {
     if (!empty(get_option('bbconnect_mailchimp_enable_optin')) && empty($_SESSION['bbconnect_mailchimp_subscribe_optin']) && $_SESSION['bbconnect_mailchimp_subscribe_ask'] !== false) {
         $countries = get_option('bbconnect_mailchimp_optin_countries');
-        if (!empty($countries) && in_array(bbconnect_get_user_country(), $countries)) {
+        if (empty($countries) || in_array(bbconnect_get_user_country(), $countries)) {
             if (is_numeric($form)) {
                 $form = GFAPI::get_form($form);
             }
@@ -135,6 +135,9 @@ function bbconnect_mailchimp_subscribe_messaging($form) {
                 return false;
             }
         });
+        jQuery('#subscribe_modal_<?php echo $form_id; ?>').on('closed.zf.reveal', function() {
+            jQuery('#gform_submit_button_<?php echo $form_id; ?>').prop('disabled', false);
+        });
     });
     function bb_mailchimp_subscription_select(value) {
         var submit_button = jQuery('#gform_submit_button_<?php echo $form_id; ?>');
@@ -199,7 +202,6 @@ function bbconnect_mailchimp_subscribe_optin($entry, $form) {
                 session_start();
             }
             switch ($_SESSION['bbconnect_mailchimp_subscribe_optin']) {
-
                 case '': // We didn't ask them - auto subscribe
                     update_user_meta($user->ID, 'bbconnect_mailchimp_subscribe_optin', 'auto');
                     if (!bbconnect_mailchimp_is_user_subscribed($user)) {
