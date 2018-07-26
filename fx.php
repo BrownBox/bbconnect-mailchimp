@@ -42,7 +42,7 @@ function bbconnect_mailchimp_delete_group_fields($delete_category) {
 }
 
 /**
- * Created CRM fields for each group in mapped category
+ * Create CRM fields for each group in mapped category
  * @param string $create_category
  */
 function bbconnect_mailchimp_create_group_fields($create_category) {
@@ -133,13 +133,13 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
     if (is_numeric($user)) {
         $user = get_user_by('id', $user);
     }
-    $firstname = get_user_meta($user_id, 'first_name', true);
-    $lastname = get_user_meta($user_id, 'last_name', true);
-    $address1 = get_user_meta($user_id, 'bbconnect_address_one_1', true);
-    $city = get_user_meta($user_id, 'bbconnect_address_city_1', true);
-    $state = get_user_meta($user_id, 'bbconnect_address_state_1', true);
-    $postal_code = get_user_meta($user_id, 'bbconnect_address_postal_code_1', true);
-    $country = get_user_meta($user_id, 'bbconnect_address_country_1', true);
+    $firstname = get_user_meta($user->ID, 'first_name', true);
+    $lastname = get_user_meta($user->ID, 'last_name', true);
+    $address1 = get_user_meta($user->ID, 'bbconnect_address_one_1', true);
+    $city = get_user_meta($user->ID, 'bbconnect_address_city_1', true);
+    $state = get_user_meta($user->ID, 'bbconnect_address_state_1', true);
+    $postal_code = get_user_meta($user->ID, 'bbconnect_address_postal_code_1', true);
+    $country = get_user_meta($user->ID, 'bbconnect_address_country_1', true);
 
     $bbconnect_helper_country = bbconnect_helper_country();
     $country = $bbconnect_helper_country[$country];
@@ -182,6 +182,8 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
             $subscriber = $mailchimp_lists->subscribe(BBCONNECT_MAILCHIMP_LIST_ID, $mc_email, $merge_vars, '', false, false, false, false);
             if (empty($subscriber['leid'])) {
                 // Something went wrong
+            } else {
+                update_user_meta($user->ID, 'bbconnect_pp_subscription', 'true');
             }
         }
     } catch (BB\Mailchimp\Mailchimp_Error $e) {
