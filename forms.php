@@ -26,7 +26,7 @@ function bbconnect_mailchimp_save_form_setting($form) {
 }
 
 function bbconnect_mailchimp_show_subscribe_on_form($form) {
-    if (!empty(get_option('bbconnect_mailchimp_enable_optin')) && empty($_SESSION['bbconnect_mailchimp_subscribe_optin']) && $_SESSION['bbconnect_mailchimp_subscribe_ask'] !== false) {
+    if (get_option('bbconnect_mailchimp_enable_optin') == 'true' && empty($_SESSION['bbconnect_mailchimp_subscribe_optin']) && $_SESSION['bbconnect_mailchimp_subscribe_ask'] !== false) {
         $countries = get_option('bbconnect_mailchimp_optin_countries');
         if (empty($countries) || in_array(bbconnect_get_user_country(), $countries)) {
             if (is_numeric($form)) {
