@@ -145,6 +145,10 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
     $bbconnect_helper_country = bbconnect_helper_country();
     $country = $bbconnect_helper_country[$country];
 
+    if (empty($country)) {
+        $country = 'Australia';
+    }
+
     $email = $user->user_email;
 
     $groupings = apply_filters('bbconnect_mailchimp_default_groupings', array());
