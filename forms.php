@@ -1,7 +1,7 @@
 <?php
 add_filter('gform_form_settings', 'bbconnect_mailchimp_custom_form_setting', 10, 2);
 function bbconnect_mailchimp_custom_form_setting($settings, $form) {
-    if (!empty(get_option('bbconnect_mailchimp_enable_optin'))) {
+    if (get_option('bbconnect_mailchimp_enable_optin') == 'true') {
         $settings['MailChimp']['bbconnect_mailchimp_subscribe_type'] = '
             <tr>
                 <th><label for="bbconnect_mailchimp_subscribe_type">Subscribe Opt-in Style '.gform_tooltip('Connexions MailChimp has been configured to display a message prior to form submission on any form containing an email address, asking the user to confirm that they are happy to be subscribed to the default groups. This option allows you to select the style of messaging.', '', true).'</label></th>
