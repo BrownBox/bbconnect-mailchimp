@@ -136,18 +136,6 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
     }
     $firstname = get_user_meta($user->ID, 'first_name', true);
     $lastname = get_user_meta($user->ID, 'last_name', true);
-    $address1 = get_user_meta($user->ID, 'bbconnect_address_one_1', true);
-    $city = get_user_meta($user->ID, 'bbconnect_address_city_1', true);
-    $state = get_user_meta($user->ID, 'bbconnect_address_state_1', true);
-    $postal_code = get_user_meta($user->ID, 'bbconnect_address_postal_code_1', true);
-    $country = get_user_meta($user->ID, 'bbconnect_address_country_1', true);
-
-    $bbconnect_helper_country = bbconnect_helper_country();
-    $country = $bbconnect_helper_country[$country];
-
-    if (empty($country)) {
-        $country = 'Australia';
-    }
 
     $email = $user->user_email;
 
@@ -177,11 +165,6 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
             $merge_vars = array(
                     'FNAME' => $firstname,
                     'LNAME' => $lastname,
-                    'addr1' => $address1,
-                    'city' => $city,
-                    'state' => $state,
-                    'zip' => $postal_code,
-                    'country' => $country,
                     'groupings' => $groupings,
             );
             $subscriber = $mailchimp_lists->subscribe(BBCONNECT_MAILCHIMP_LIST_ID, $mc_email, $merge_vars, '', false, false, false, false);
