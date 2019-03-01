@@ -172,10 +172,15 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
             if (empty($subscriber['leid'])) {
                 return 'Failed to add subscriber';
             } else {
-                update_user_meta($user->ID, 'bbconnect_pp_subscription', 'true');
+                remove_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10);
+                update_user_meta($user->ID, 'bbconnect_bbc_subscription', 'true');
+                add_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10, 5);
                 return true;
             }
         }
+        remove_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10);
+        update_user_meta($user->ID, 'bbconnect_bbc_subscription', 'true');
+        add_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10, 5);
         return 'Already subscribed';
     } catch (BB\Mailchimp\Mailchimp_Error $e) {
         return $e->getMessage();
@@ -442,7 +447,7 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
     $email = get_userdata($user_id)->user_email;
 
     $mailchimp_fields = apply_filters('bbconnect_mailchimp_synced_meta_fields', array(
-            'bbconnect_pp_subscription',
+            'bbconnect_bbc_subscription',
             'COUNTRY' => 'bbconnect_address_country_1',
             'FNAME' => 'first_name',
             'LNAME' => 'last_name',
@@ -454,7 +459,7 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
     } catch (BB\Mailchimp\Mailchimp_Error $e) {
         return null;
     }
-    if ($meta_key == 'bbconnect_pp_subscription') {
+    if ($meta_key == 'bbconnect_bbc_subscription') {
         if (empty($prev_value)) { // The existing value often doesn't get passed through so we'll grab it ourselves
             $prev_value = get_user_meta($user_id, $meta_key, true);
         }
@@ -478,9 +483,9 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
                 remove_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10); // Don't want to trigger this filter again otherwise we'll end up in an endless loop
                 if (empty($is_registered['status'])) { // No errors
                     if ($is_registered['success_count'] != 0 && $is_registered['data'][0]['status'] == 'subscribed') { // Subscribed
-                        update_user_meta($user_id, 'bbconnect_pp_subscription', 'true');
+                        update_user_meta($user_id, 'bbconnect_bbc_subscription', 'true');
                     } else { // Not subscribed
-                        update_user_meta($user_id, 'bbconnect_pp_subscription', 'false');
+                        update_user_meta($user_id, 'bbconnect_bbc_subscription', 'false');
                     }
                 }
                 add_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10, 5);
