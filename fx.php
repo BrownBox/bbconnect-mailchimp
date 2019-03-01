@@ -167,6 +167,7 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
                     'LNAME' => $lastname,
                     'groupings' => $groupings,
             );
+            $merge_vars = apply_filters('bbconnect_mailchimp_push_data', $merge_vars, $user);
             $subscriber = $mailchimp_lists->subscribe(BBCONNECT_MAILCHIMP_LIST_ID, $mc_email, $merge_vars, '', false, false, false, false);
             if (empty($subscriber['leid'])) {
                 return 'Failed to add subscriber';
