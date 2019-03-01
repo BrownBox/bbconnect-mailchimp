@@ -40,6 +40,18 @@ if (isset($_POST['type'])) {
 
         do_action('bbconnect_mailchimp_before_webhook', $email, $_POST);
 
+        if (!email_exists($email)) {
+            $userdata = array(
+                    'user_login' => $email,
+                    'first_name' => $_POST['data']['merges']['FNAME'],
+                    'last_name' => $_POST['data']['merges']['LNAME'],
+                    'user_email' => $email,
+                    'user_nicename' => $_POST['data']['merges']['FNAME'],
+                    'nickname' => $_POST['data']['merges']['FNAME'],
+            );
+            $user_id = wp_insert_user($userdata);
+            update_user_meta($user_id, 'source', 'mailchimp');
+        }
         $userobject = get_user_by('email', $email);
         if ($userobject instanceof WP_User) {
             $user_id = $userobject->data->ID;
