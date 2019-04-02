@@ -202,12 +202,15 @@ function bbconnect_mailchimp_subscribe_optin($entry, $form) {
                 session_start();
             }
             switch ($_SESSION['bbconnect_mailchimp_subscribe_optin']) {
-                case '': // We didn't ask them - auto subscribe
-                    update_user_meta($user->ID, 'bbconnect_mailchimp_subscribe_optin', 'auto');
-                    if (!bbconnect_mailchimp_is_user_subscribed($user)) {
-                        bbconnect_mailchimp_subscribe_user($user);
+                case '': // We didn't ask them - auto subscribe (if enabled)
+                    $auto_subscribe = get_option('bbconnect_mailchimp_auto_subscribe');
+                    if ($auto_subscribe == 'true') {
+                        update_user_meta($user->ID, 'bbconnect_mailchimp_subscribe_optin', 'auto');
+                        if (!bbconnect_mailchimp_is_user_subscribed($user)) {
+                            bbconnect_mailchimp_subscribe_user($user);
+                        }
+                        bbconnect_mailchimp_update_user_default_groups($user);
                     }
-                    bbconnect_mailchimp_update_user_default_groups($user);
                     break;
                 case 'yes': // We asked and they said yes!
                     update_user_meta($user->ID, 'bbconnect_mailchimp_subscribe_optin', 'manual');

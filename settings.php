@@ -133,6 +133,20 @@ function bbconnect_mailchimp_settings() {
                             ),
                     ),
             ),
+            array(
+                    'meta' => array(
+                            'source' => 'bbconnect',
+                            'meta_key' => 'bbconnect_mailchimp_auto_subscribe',
+                            'name' => __('Auto-Subscribe If No Opt-In', 'bbconnect'),
+                            'help' => 'Tick this option if you want users who don\'t meet the criteria above to be automatically subscribed.',
+                            'options' => array(
+                                    'field_type' => 'checkbox',
+                                    'req' => false,
+                                    'public' => false,
+                                    'choices' => false,
+                            ),
+                    ),
+            ),
     );
 }
 
