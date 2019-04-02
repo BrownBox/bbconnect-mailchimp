@@ -121,7 +121,11 @@ if (!function_exists('subscribe_to_mailchimp')) { // backwards compatibility
 }
 
 function bbconnect_mailchimp_mapped_groups() {
-    return get_option('bbconnect_mailchimp_current_groups');
+    $groups = get_option('bbconnect_mailchimp_current_groups');
+    if ($groups === false) {
+        $groups = array();
+    }
+    return $groups;
 }
 
 /**
