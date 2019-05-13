@@ -138,7 +138,7 @@ function bbconnect_mailchimp_settings() {
                             'source' => 'bbconnect',
                             'meta_key' => 'bbconnect_mailchimp_auto_subscribe',
                             'name' => __('Auto-Subscribe If No Opt-In', 'bbconnect'),
-                            'help' => 'Tick this option if you want users who don\'t meet the criteria above to be automatically subscribed.',
+                            'help' => 'Tick this option if you want new contacts who don\'t meet the criteria above to be automatically subscribed.',
                             'options' => array(
                                     'field_type' => 'checkbox',
                                     'req' => false,
@@ -166,6 +166,7 @@ function bbconnect_mailchimp_save_settings() {
             // Create new fields
             bbconnect_mailchimp_create_group_fields($submitted_group);
         }
+        update_option('bbconnect_mailchimp_last_group_update', current_time('timestamp'));
     }
 }
 

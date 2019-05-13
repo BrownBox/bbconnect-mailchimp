@@ -58,7 +58,6 @@ function bbconnect_mailchimp_create_group_fields($create_category) {
         foreach ($group_categories as $category) {
             if ($category['name'] == $create_category) {
                 update_option('bbconnect_mailchimp_current_groups', $category['groups'], false);
-                wp_schedule_single_event(time()+10, 'bbconnect_mailchimp_pull_all_user_groups'); // Run 10 seconds from now just to be sure all the changes have gone through
                 // Add fields
                 $fields = array();
                 foreach ($category['groups'] as $group) {
@@ -369,24 +368,59 @@ function bbconnect_mailchimp_pull_user_groups($user, $meta_key = '') {
         } catch (BB\Mailchimp\Mailchimp_Error $e) {
             // Do nothing
         }
+        update_user_meta($user->ID, 'bbconnect_mailchimp_last_group_update', current_time('timestamp'));
         add_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10, 5);
     }
 }
 
-add_action('bbconnect_mailchimp_pull_all_user_groups', 'bbconnect_mailchimp_pull_all_user_groups');
 /**
  * Update user meta for all users based on mapped groups in MailChimp.
- * You shouldn't ever need to call this function directly - it is run automatically any time mapped fields are created/updated.
+ * You shouldn't ever need to call this function directly - it is run automatically in the background.
  */
 function bbconnect_mailchimp_pull_all_user_groups() {
     $mapped_category = get_option('bbconnect_mailchimp_channels_group');
     if (!empty($mapped_category)) {
-        set_time_limit(600);
-        $users = get_users();
-        foreach ($users as $user) {
-            set_time_limit(300);
-            bbconnect_mailchimp_pull_user_groups($user);
-        }
+        $last_update = get_option('bbconnect_mailchimp_last_group_update');
+        $offset = 0;
+        $limit = 20;
+        $get_total = true;
+        global $blog_id;
+
+        do {
+            set_time_limit(600);
+            $args = array(
+                    'fields' => array('ID'),
+                    'blog_id' => $blog_id,
+                    'number' => $limit,
+                    'offset' => $offset,
+                    'count_total' => $get_total,
+                    'meta_query' => array(
+                            'relation' => 'or',
+                            array(
+                                    'key' => 'bbconnect_mailchimp_last_group_update',
+                                    'value' => $last_update,
+                                    'compare' => '<',
+                            ),
+                            array(
+                                    'key' => 'bbconnect_mailchimp_last_group_update',
+                                    'compare' => 'NOT EXISTS',
+                            ),
+                    ),
+            );
+            $query = new WP_User_Query($args);
+            $users = $query->get_results();
+            if ($get_total) {
+                $total_users = $query->get_total();
+            }
+
+            foreach ($users as $user) {
+                set_time_limit(300);
+                bbconnect_mailchimp_pull_user_groups($user->ID);
+            }
+            $get_total = false;
+            $offset += $limit;
+            unset($query, $users, $user);
+        } while ($offset <= $total_users);
     }
 }
 
@@ -579,7 +613,7 @@ function bbconnect_mailchimp_daily_updates() {
                     if ($category['groups'] != bbconnect_mailchimp_mapped_groups()) { // Something has changed - remove the current fields and create new ones
                         bbconnect_mailchimp_delete_group_fields($mapped_category);
                         bbconnect_mailchimp_create_group_fields($mapped_category);
-                        bbconnect_mailchimp_pull_all_user_groups();
+                        update_option('bbconnect_mailchimp_last_group_update', current_time('timestamp'));
                     }
                     break;
                 }
@@ -588,4 +622,9 @@ function bbconnect_mailchimp_daily_updates() {
             // Do nothing
         }
     }
+}
+
+add_action('bbconnect_mailchimp_do_hourly_updates', 'bbconnect_mailchimp_hourly_updates');
+function bbconnect_mailchimp_hourly_updates() {
+    bbconnect_mailchimp_pull_all_user_groups();
 }

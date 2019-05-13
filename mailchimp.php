@@ -44,6 +44,9 @@ function bbconnect_mailchimp_init() {
         $run_time->setTimezone(new DateTimeZone('UTC'));
         wp_schedule_event($run_time->getTimestamp(), 'daily', 'bbconnect_mailchimp_do_daily_updates');
     }
+    if (!wp_next_scheduled('bbconnect_mailchimp_do_hourly_updates')) {
+        wp_schedule_event(time(), 'hourly', 'bbconnect_mailchimp_do_hourly_updates');
+    }
     register_deactivation_hook(__FILE__, 'bbconnect_mailchimp_deactivation');
 }
 add_action('plugins_loaded', 'bbconnect_mailchimp_init');
