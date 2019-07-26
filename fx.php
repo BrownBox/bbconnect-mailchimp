@@ -563,7 +563,7 @@ add_action('profile_update', 'bbconnect_mailchimp_email_update', 10, 2);
 /**
  * Update email address in MailChimp when changed in CRM
  * @param integer $user_id User being updated
- * @param array $old_user_data User data before update
+ * @param WP_User $old_user_data User data before update
  */
 function bbconnect_mailchimp_email_update($user_id, $old_user_data) {
     $new_user_data = get_user_by('id', $user_id);
