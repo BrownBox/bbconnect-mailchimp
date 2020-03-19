@@ -91,7 +91,7 @@ if (isset($_POST['type'])) {
                     break;
             }
 
-            if ($type != 'upemail') { // Don't need to run this for a change of email address as we always get a separate profile call at the same time as an email update
+            if ($_POST['type'] != 'upemail') { // Don't need to run this for a change of email address as we always get a separate profile call at the same time as an email update
                 $profile_fields = array(
                         'COUNTRY' => 'bbconnect_address_country_1',
                         'FNAME' => 'first_name',
@@ -111,7 +111,7 @@ if (isset($_POST['type'])) {
 
                 bbconnect_mailchimp_maybe_push_personalisation_key($user_id);
 
-                if ($type != 'unsubscribe') { // If they're still subscribed, sync mapped groups
+                if ($_POST['type'] != 'unsubscribe') { // If they're still subscribed, sync mapped groups
                     $mapped_category = get_option('bbconnect_mailchimp_channels_group');
                     if (!empty($mapped_category)) {
                         try {
