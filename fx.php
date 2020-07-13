@@ -60,8 +60,10 @@ function bbconnect_mailchimp_create_group_fields($create_category) {
                 update_option('bbconnect_mailchimp_current_groups', $category['groups'], false);
                 // Add fields
                 $fields = array();
+                $default_groups = get_option('bbconnect_mailchimp_optin_groups');
                 foreach ($category['groups'] as $group) {
-                    $fields[] = array('source' => 'bbconnect', 'meta_key' => 'mailchimp_group_'.bbconnect_mailchimp_clean_group_name($create_category, $group['name']), 'tag' => '', 'name' => $create_category.': '.$group['name'], 'options' => array('admin' => true, 'user' => true, 'signup' => false, 'reports' => true, 'public' => false, 'req' => false, 'field_type' => 'checkbox', 'choices' => array('false')), 'help' => '');
+                	$val = $default_groups[$group['id']] == 'true' ? 'true' : 'false';
+                	$fields[] = array('source' => 'bbconnect', 'meta_key' => 'mailchimp_group_'.bbconnect_mailchimp_clean_group_name($create_category, $group['name']), 'tag' => '', 'name' => $create_category.': '.$group['name'], 'options' => array('admin' => true, 'user' => true, 'signup' => false, 'reports' => true, 'public' => false, 'req' => false, 'field_type' => 'checkbox', 'choices' => array($val)), 'help' => '');
                 }
                 $field_keys = array();
 
