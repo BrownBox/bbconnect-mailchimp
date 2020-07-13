@@ -265,6 +265,7 @@ function bbconnect_mailchimp_update_user_default_groups($user) {
     }
 }
 
+add_action('user_register', 'bbconnect_mailchimp_push_user_groups'); // Push selected groups to MailChimp as soon as a new user is created
 /**
  * Update mapped groups in MailChimp based on user meta
  * @param WP_User|integer $user User to update. Can be either user ID or WP_User object.
