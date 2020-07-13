@@ -153,18 +153,28 @@ function bbconnect_mailchimp_settings() {
 add_action('bbconnect_options_save_ext', 'bbconnect_mailchimp_save_settings');
 function bbconnect_mailchimp_save_settings() {
     // Set up group syncing
-    $current_group = get_option('bbconnect_mailchimp_channels_group');
-    $submitted_group = $_POST['_bbc_option']['bbconnect_mailchimp_channels_group'];
+    $current_settings = array(
+    		'list' => get_option('bbconnect_mailchimp_list_id'),
+    		'key' => get_option('bbconnect_mailchimp_api_key'),
+    		'category' => get_option('bbconnect_mailchimp_channels_group'),
+    		'default_groups' => get_option('bbconnect_mailchimp_optin_groups'),
+    );
+    $submitted_settings = array(
+    		'list' => $_POST['_bbc_option']['bbconnect_mailchimp_list_id'],
+    		'key' => $_POST['_bbc_option']['bbconnect_mailchimp_api_key'],
+    		'category' => $_POST['_bbc_option']['bbconnect_mailchimp_channels_group'],
+    		'default_groups' => $_POST['_bbc_option']['bbconnect_mailchimp_optin_groups'],
+	);
 
-    if ($current_group != $submitted_group) { // No need to do anything if the value hasn't changed
-        if (!empty($current_group)) {
+    if ($current_settings !== $submitted_settings) { // No need to do anything if the settings haven't changed
+    	if (!empty($current_settings['category'])) {
             // Clear previous fields
-            bbconnect_mailchimp_delete_group_fields($current_group);
+    		bbconnect_mailchimp_delete_group_fields($current_settings['category']);
         }
 
-        if (!empty($submitted_group)) {
+        if (!empty($submitted_settings['category'])) {
             // Create new fields
-            bbconnect_mailchimp_create_group_fields($submitted_group);
+        	bbconnect_mailchimp_create_group_fields($submitted_settings['category']);
         }
         update_option('bbconnect_mailchimp_last_group_update', current_time('timestamp'));
     }
