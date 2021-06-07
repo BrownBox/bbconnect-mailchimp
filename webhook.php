@@ -50,7 +50,7 @@ if (isset($_POST['type'])) {
                     'nickname' => $_POST['data']['merges']['FNAME'],
             );
             $user_id = wp_insert_user($userdata);
-            update_user_meta($user_id, 'source', 'mailchimp');
+            update_user_meta($user_id, 'bbconnect_source', 'mailchimp');
         }
         $userobject = get_user_by('email', $email);
         if ($userobject instanceof WP_User) {
