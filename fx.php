@@ -594,6 +594,20 @@ function bbconnect_mailchimp_email_update($user_id, $old_user_data) {
     }
 }
 
+add_filter('bbconnect_meta_tracked_fields', 'bbconnect_mailchimp_meta_tracked_fields');
+function bbconnect_mailchimp_meta_tracked_fields($tracked_fields) {
+	$mapped_category = get_option('bbconnect_mailchimp_channels_group');
+	if (!empty($mapped_category)) {
+		$groups = bbconnect_mailchimp_mapped_groups();
+		if (is_array($groups)) {
+			foreach ($groups as $group) {
+				$tracked_fields['bbconnect_mailchimp_group_'.bbconnect_mailchimp_clean_group_name($mapped_category, $group['name'])] = $group['name'];
+			}
+		}
+	}
+	return $tracked_fields;
+}
+
 add_action('bbconnect_mailchimp_do_daily_updates', 'bbconnect_mailchimp_daily_updates');
 /**
  * Checks mapped groups in MailChimp to make sure CRM fields still match.
