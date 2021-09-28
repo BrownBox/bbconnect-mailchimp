@@ -3,12 +3,11 @@
  * Plugin Name: Connexions MailChimp
  * Plugin URI: http://connexionscrm.com/
  * Description: An addon to provide a bridge to connect with MailChimp for Connexions
- * Version: 1.0.6
+ * Version: 1.1.0
  * Author: Brown Box
  * Author URI: http://brownbox.net.au
- * License: Proprietary Brown Box
  */
-define('BBCONNECT_MAILCHIMP_VERSION', '1.0.6');
+define('BBCONNECT_MAILCHIMP_VERSION', '1.1.0');
 define('BBCONNECT_MAILCHIMP_API_KEY', get_option('bbconnect_mailchimp_api_key'));
 define('BBCONNECT_MAILCHIMP_LIST_ID', get_option('bbconnect_mailchimp_list_id'));
 
