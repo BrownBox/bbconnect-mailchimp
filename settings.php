@@ -63,6 +63,45 @@ function bbconnect_mailchimp_settings() {
                             ),
                     ),
             ),
+    		array(
+    				'meta' => array(
+    						'source' => 'bbconnect',
+    						'meta_key' => 'bbconnect_mailchimp_resubscribe_title',
+    						'name' => __('Resubscribe Notification Settings', 'bbconnect'),
+    						'description' => 'If a contact has previously unsubscribed from your audience, MailChimp will not allow them to be resubscribed by Connexions. Use these settings to configure the email that will be sent to the contact in that situation. Leave the Message blank if you do not want an email to be sent.',
+    						'options' => array(
+    								'field_type' => 'title',
+    								'req' => false,
+    								'public' => false,
+    						),
+    				),
+    		),
+    		array(
+    				'meta' => array(
+    						'source' => 'bbconnect',
+    						'meta_key' => 'bbconnect_mailchimp_resubscribe_subject',
+    						'name' => __('Resubscribe Notification Subject', 'bbconnect'),
+    						'help' => '',
+    						'options' => array(
+    								'field_type' => 'text',
+    								'req' => true,
+    								'public' => false,
+    						),
+    				),
+    		),
+    		array(
+    				'meta' => array(
+    						'source' => 'bbconnect',
+    						'meta_key' => 'bbconnect_mailchimp_resubscribe_message',
+    						'name' => __('Resubscribe Notification Message', 'bbconnect'),
+    						'help' => 'To manually resubscribe the contact must use the MailChimp-hosted subscription form. Ensure you include a link to this form in your email. The URL can be found in your MailChimp Audience, under Signup Forms -> Form Builder -> Signup form URL.',
+    						'options' => array(
+    								'field_type' => 'textarea',
+    								'req' => true,
+    								'public' => false,
+    						),
+    				),
+    		),
             array(
                     'meta' => array(
                             'source' => 'bbconnect',

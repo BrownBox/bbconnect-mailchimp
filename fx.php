@@ -187,9 +187,26 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
         update_user_meta($user->ID, 'bbconnect_bbc_subscription', 'true');
         add_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10, 5);
         return 'Already subscribed';
+    } catch (BB\Mailchimp\Mailchimp_List_InvalidUnsubMember $e) {
+    	bbconnect_mailchimp_send_resubscribe_email($email);
+    	return $e->getMessage();
     } catch (BB\Mailchimp\Mailchimp_Error $e) {
         return $e->getMessage();
     }
+}
+
+function bbconnect_mailchimp_send_resubscribe_email($email) {
+	$message = get_option('bbconnect_mailchimp_resubscribe_message');
+	if (!empty($message)) {
+		$subject = get_option('bbconnect_mailchimp_resubscribe_subject');
+		$firstname = 'Friend';
+		$user = get_user_by('email', $email);
+		if ($user instanceof WP_User) {
+			$firstname = $user->user_firstname;
+		}
+		$message = str_replace('%%firstname%%', $firstname, $message);
+		wp_mail($email, $subject, $message);
+	}
 }
 
 add_filter('bbconnect_mailchimp_default_groupings', 'bbconnect_mailchimp_default_groupings', 0);
