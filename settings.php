@@ -68,11 +68,30 @@ function bbconnect_mailchimp_settings() {
     						'source' => 'bbconnect',
     						'meta_key' => 'bbconnect_mailchimp_resubscribe_title',
     						'name' => __('Resubscribe Notification Settings', 'bbconnect'),
-    						'description' => 'If a contact has previously unsubscribed from your audience, MailChimp will not allow them to be resubscribed by Connexions. Use these settings to configure the email that will be sent to the contact in that situation. Leave the Message blank if you do not want an email to be sent.',
+    						'description' => 'If a contact has previously unsubscribed from your audience, MailChimp will not allow them to be resubscribed by Connexions. Use these settings to configure the email that will be sent in that situation.',
     						'options' => array(
     								'field_type' => 'title',
     								'req' => false,
     								'public' => false,
+    						),
+    				),
+    		),
+    		array(
+    				'meta' => array(
+    						'source' => 'bbconnect',
+    						'meta_key' => 'bbconnect_mailchimp_resubscribe_recipient',
+    						'name' => __('Resubscribe Email Recipient', 'bbconnect'),
+    						'help' => 'Select who the resubscribe notification should be sent to.',
+    						'options' => array(
+    								'field_type' => 'radio',
+    								'req' => true,
+    								'public' => false,
+    								'choices' => array(
+    										'none' => 'None',
+    										'subscriber' => 'Subscriber',
+    										'admin' => 'Admin',
+    										'both' => 'Both',
+    								),
     						),
     				),
     		),
@@ -97,7 +116,21 @@ function bbconnect_mailchimp_settings() {
     						'help' => 'To manually resubscribe the contact must use the MailChimp-hosted subscription form. Ensure you include a link to this form in your email. The URL can be found in your MailChimp Audience, under Signup Forms -> Form Builder -> Signup form URL.',
     						'options' => array(
     								'field_type' => 'textarea',
+    								'wp_editor' => true,
     								'req' => true,
+    								'public' => false,
+    						),
+    				),
+    		),
+    		array(
+    				'meta' => array(
+    						'source' => 'bbconnect',
+    						'meta_key' => 'bbconnect_mailchimp_resubscribe_admin_email',
+    						'name' => __('Resubscribe Notification Admin Email', 'bbconnect'),
+    						'help' => 'Where admin resubscribe notification should be sent (if enabled). Leave blank to use the WordPress admin email address (currently <code>'.get_option('admin_email').'</code>)',
+    						'options' => array(
+    								'field_type' => 'text',
+    								'req' => false,
     								'public' => false,
     						),
     				),

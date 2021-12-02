@@ -196,16 +196,30 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
 }
 
 function bbconnect_mailchimp_send_resubscribe_email($email) {
+	$recipient = get_option('bbconnect_mailchimp_resubscribe_recipient');
 	$message = get_option('bbconnect_mailchimp_resubscribe_message');
-	if (!empty($message)) {
+	if ('none' != $recipient && !empty($message)) {
 		$subject = get_option('bbconnect_mailchimp_resubscribe_subject');
 		$firstname = 'Friend';
+		$lastname = '';
 		$user = get_user_by('email', $email);
 		if ($user instanceof WP_User) {
 			$firstname = $user->user_firstname;
+			$lastname = $user->user_lastname;
 		}
-		$message = str_replace('%%firstname%%', $firstname, $message);
-		wp_mail($email, $subject, $message);
+		// Clean up weird quotes issue from Connexions
+		$message = stripslashes(html_entity_decode($message));
+		$message = wpautop(str_replace(array('%%firstname%%', '%%lastname%%', '%%email%%'), array($firstname, $lastname, $email), $message));
+		$content_type = function() {return 'text/html';};
+		add_filter('wp_mail_content_type', $content_type);
+		if (in_array($recipient, array('subscriber', 'both'))) {
+			wp_mail($email, $subject, $message);
+		}
+		if (in_array($recipient, array('admin', 'both'))) {
+			$admin_email = get_option('bbconnect_mailchimp_resubscribe_admin_email') ?: get_option('admin_email');
+			wp_mail($admin_email, $subject, $message);
+		}
+		remove_filter('wp_mail_content_type', $content_type);
 	}
 }
 
