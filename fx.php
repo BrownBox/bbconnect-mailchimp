@@ -617,7 +617,19 @@ function bbconnect_mailchimp_email_update($user_id, $old_user_data) {
                     'emails'    => array(array('email' => $old_email))
             ));
             if (empty($mc_info['status']) && $mc_info['success_count'] > 0) { // Found them!
-                $mailchimp_lists->updateMember(BBCONNECT_MAILCHIMP_LIST_ID, array('email' => $old_email), array('NEW-EMAIL' => $new_email), '', false);
+            	if ($mc_info['data'][0]['status'] == 'cleaned') {
+            		// Old address was invalid - if they're supposed to be subscribed, add them
+            		if ('true' == get_user_meta($user_id, 'bbconnect_bbc_subscription', true)) {
+            			bbconnect_mailchimp_subscribe_user($user_id);
+            		}
+            	} else {
+            		$mailchimp_lists->updateMember(BBCONNECT_MAILCHIMP_LIST_ID, array('email' => $old_email), array('NEW-EMAIL' => $new_email), '', false);
+            	}
+            } else {
+            	// Old address wasn't in MailChimp - if they're supposed to be subscribed, add them
+            	if ('true' == get_user_meta($user_id, 'bbconnect_bbc_subscription', true)) {
+            		bbconnect_mailchimp_subscribe_user($user_id);
+            	}
             }
         } catch (BB\Mailchimp\Mailchimp_Error $e) {
             // Do nothing
