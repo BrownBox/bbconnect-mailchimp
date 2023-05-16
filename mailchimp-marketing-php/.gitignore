@@ -1,0 +1,10 @@
+.php_cs
+.travis.yml
+CHANGELOG.md
+composer
+composer.json
+composer.lock
+git_push.sh
+LICENSE
+phpunit.xml.dist
+README.md

@@ -1,6 +1,11 @@
 <?php
 require_once(dirname(__FILE__)."/../../../wp-load.php");
 
+if (!defined('BBCONNECT_MAILCHIMP_VERSION')) {
+	// Plugin isn't active, abort
+	return;
+}
+
 // Long-running requests to this script (e.g. campaign send tracking) sometimes result in MailChimp receiving a timeout.
 // MailChimp will then send the webhook again as they read it as a failure, so if possible we try and return a response immediately so they know it was successful.
 if (function_exists('fastcgi_finish_request')) {
@@ -33,18 +38,21 @@ if (isset($_POST['type'])) {
 	}
 	// HACK OVER. You can relax now.
 
+	$mailchimp = bbconnect_mailchimp_get_client();
+	if (!$mailchimp) {
+		return;
+	}
+
 	try {
-		$mailchimp = new BB\Mailchimp\Mailchimp(BBCONNECT_MAILCHIMP_API_KEY);
-		$mailchimp_lists = new BB\Mailchimp\Mailchimp_Lists($mailchimp);
 		if (isset($_POST['data']['list_id'])) {
-			$list_details = $mailchimp_lists->getList(array('list_id' => $_POST['data']['list_id']));
-			$list_details = array_shift($list_details['data']);
+			$list_details = $mailchimp->lists->getList($_POST['data']['list_id'], 'name');
 		}
-	} catch (BB\Mailchimp\Mailchimp_Error $e) {
+	} catch (Exception $e) {
 		return;
 	}
 
 	if (!empty($_POST['data']['merges']['EMAIL']) || !empty($_POST['data']['old_email'])) {
+		remove_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10);
 		if ($_POST['type'] == 'upemail') {
 			$email = $_POST['data']['old_email'];
 		} else {
@@ -77,39 +85,35 @@ if (isset($_POST['type'])) {
 					// Update Subscribe meta on user
 					update_user_meta($user_id, 'bbconnect_bbc_subscription', 'true');
 					$tracking_args['title'] .= 'Subscribe';
-					$tracking_args['description'] = '<p>Subscribed to "'.$list_details['name'].'".</p>';
+					$tracking_args['description'] = '<p>Subscribed to "'.$list_details->name.'".</p>';
 					break;
 				case 'unsubscribe':
 					// Update Subscribe meta on user
 					update_user_meta($user_id, 'bbconnect_bbc_subscription', 'false');
 					$tracking_args['title'] .= 'Unsubscribe';
-					$tracking_args['description'] = '<p>Unsubscribed from "'.$list_details['name'].'".</p>';
+					$tracking_args['description'] = '<p>Unsubscribed from "'.$list_details->name.'".</p>';
 					break;
 				case 'cleaned':
 					// Update Subscribe meta on user
 					update_user_meta($user_id, 'bbconnect_bbc_subscription', 'false');
 					$tracking_args['title'] .= 'Cleaned';
 					$reason = $_POST['data']['reason'] == 'hard' ? 'hard bounce' : 'abuse report';
-					$tracking_args['description'] = '<p>Email was forcibly removed from list "'.$list_details['name'].'" due to '.$reason.'.</p>';
+					$tracking_args['description'] = '<p>Email was forcibly removed from list "'.$list_details->name.'" due to '.$reason.'.</p>';
 					break;
 				case 'upemail':
 					$userobject->data->user_email = $_POST['data']['new_email'];
-					$result = wp_update_user($userobject);
+					wp_update_user($userobject);
 					$tracking_args['title'] .= 'Email Address Change';
 					$tracking_args['description'] = '<p>Email address changed from '.$_POST['data']['old_email'].' to '.$_POST['data']['new_email'].'.</p>';
 					break;
 				case 'profile':
 					$tracking_args['title'] .= 'Profile Update';
-					$tracking_args['description'] = '<p>Updated profile details for "'.$list_details['name'].'".</p>';
+					$tracking_args['description'] = '<p>Updated profile details for "'.$list_details->name.'".</p>';
 					break;
 			}
 
 			if ($_POST['type'] != 'upemail') { // Don't need to run this for a change of email address as we always get a separate profile call at the same time as an email update
-				$profile_fields = array(
-						'COUNTRY' => 'bbconnect_address_country_1',
-						'FNAME' => 'first_name',
-						'LNAME' => 'last_name',
-				);
+				$profile_fields = apply_filters('bbconnect_mailchimp_synced_meta_fields', array());
 
 				foreach ($profile_fields as $mc_field => $meta_key) {
 					if (!empty($_POST['data']['merges'][$mc_field])) {
@@ -123,33 +127,7 @@ if (isset($_POST['type'])) {
 				}
 
 				bbconnect_mailchimp_maybe_push_personalisation_key($user_id);
-
-				if ($_POST['type'] != 'unsubscribe') { // If they're still subscribed, sync mapped groups
-					$mapped_category = get_option('bbconnect_mailchimp_channels_group');
-					if (!empty($mapped_category)) {
-						try {
-							$group_categories = $mailchimp_lists->interestGroupings(BBCONNECT_MAILCHIMP_LIST_ID);
-							foreach ($group_categories as $category) {
-								if ($category['name'] == $mapped_category) {
-									foreach ($_POST['data']['merges']['GROUPINGS'] as $grouping) {
-										if ($grouping['name'] == $mapped_category) {
-											foreach ($category['groups'] as $group) {
-												$meta_key = 'bbconnect_mailchimp_group_'.bbconnect_mailchimp_clean_group_name($grouping['name'], $group['name']);
-												if (strpos($grouping['groups'], $group['name']) !== false) {
-													update_user_meta($user_id, $meta_key, 'true');
-												} else {
-													update_user_meta($user_id, $meta_key, 'false');
-												}
-											}
-										}
-									}
-								}
-							}
-						} catch (BB\Mailchimp\Mailchimp_Error $e) {
-							// Do nothing
-						}
-					}
-				}
+				bbconnect_mailchimp_pull_user_groups($user_id);
 			}
 
 			bbconnect_track_activity($tracking_args);
