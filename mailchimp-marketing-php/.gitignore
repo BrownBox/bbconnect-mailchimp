@@ -1,7 +1,7 @@
 .php_cs
 .travis.yml
 CHANGELOG.md
-composer
+/composer
 composer.json
 composer.lock
 git_push.sh
