@@ -2,11 +2,11 @@
 /**
  * Plugin Name: Connexions MailChimp
  * Description: An addon to provide a bridge to connect with MailChimp for Connexions
- * Version: 2.0.0
+ * Version: 2.0.1
  * Author: Spark Web Solutions
  * Author URI: https://sparkweb.com.au
  */
-define('BBCONNECT_MAILCHIMP_VERSION', '2.0.0');
+define('BBCONNECT_MAILCHIMP_VERSION', '2.0.1');
 
 require_once (plugin_dir_path(__FILE__).'mailchimp-marketing-php/vendor/autoload.php');
 require_once (plugin_dir_path(__FILE__).'db.php');
