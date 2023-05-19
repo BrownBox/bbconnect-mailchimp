@@ -235,7 +235,7 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
 					return false;
 					break;
 			}
-		} catch (GuzzleHttp\Exception\ClientException $e) {
+		} catch (Spark\MailChimp\Vendor\GuzzleHttp\Exception\ClientException $e) {
 			switch ($e->getResponse()->getStatusCode()) {
 				case 404:
 					// Never subscribed - add them
@@ -339,7 +339,7 @@ function bbconnect_mailchimp_is_user_subscribed($user) {
 			$list_id = get_option('bbconnect_mailchimp_list_id');
 			$subscriber = $mailchimp->lists->getListMember($list_id, $email);
 			return $subscriber->status == 'subscribed';
-		} catch (GuzzleHttp\Exception\ClientException $e) {
+		} catch (Spark\MailChimp\Vendor\GuzzleHttp\Exception\ClientException $e) {
 			if ($e->getResponse()->getStatusCode() == 404) {
 				// A 404 means the request was successful but the email address doesn't exist
 				return false;
@@ -641,7 +641,7 @@ function bbconnect_mailchimp_email_update($user_id, $old_user_data) {
 						return false;
 						break;
 				}
-			} catch (GuzzleHttp\Exception\ClientException $e) {
+			} catch (Spark\MailChimp\Vendor\GuzzleHttp\Exception\ClientException $e) {
 				if ($e->getResponse()->getStatusCode() == 404) {
 					// Old address wasn't subscribed - if they're supposed to be subscribed, add them
 					if ('true' == get_user_meta($user_id, 'bbconnect_bbc_subscription', true)) {
@@ -707,7 +707,7 @@ function bbconnect_mailchimp_hourly_updates() {
 
 /**
  * Connect to MailChimp and get client object
- * @return MailchimpMarketing\ApiClient|boolean False if connection failed, or client object on success
+ * @return \Spark\Connexions\MailChimp\Vendor\MailchimpMarketing\ApiClient|boolean False if connection failed, or client object on success
  */
 function bbconnect_mailchimp_get_client() {
 	$api_key = get_option('bbconnect_mailchimp_api_key');
@@ -717,7 +717,7 @@ function bbconnect_mailchimp_get_client() {
 	}
 
 	try {
-		$mailchimp = new MailchimpMarketing\ApiClient();
+		$mailchimp = new \Spark\Connexions\MailChimp\Vendor\MailchimpMarketing\ApiClient();
 		$mailchimp->setConfig(array(
 				'apiKey' => $api_key,
 				'server' => $server,

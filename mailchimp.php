@@ -8,7 +8,7 @@
  */
 define('BBCONNECT_MAILCHIMP_VERSION', '2.0.1');
 
-require_once (plugin_dir_path(__FILE__).'mailchimp-marketing-php/vendor/autoload.php');
+require_once (plugin_dir_path(__FILE__).'includes/vendor/autoload.php');
 require_once (plugin_dir_path(__FILE__).'db.php');
 require_once (plugin_dir_path(__FILE__).'fx.php');
 require_once (plugin_dir_path(__FILE__).'settings.php');
