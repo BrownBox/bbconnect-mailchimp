@@ -590,25 +590,27 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
 					add_action('profile_update', 'bbconnect_mailchimp_push_user_groups', 99, 2);
 				}
 			}
-		} elseif (strpos($meta_key, 'mailchimp_group') !== false) {
-			if (empty($prev_value)) { // The existing value often doesn't get passed through so we'll grab it ourselves
-				$prev_value = get_user_meta($user_id, $meta_key, true);
+		} elseif (bbconnect_mailchimp_is_user_subscribed($user_id)) {
+			if (strpos($meta_key, 'mailchimp_group') !== false) {
+				if (empty($prev_value)) { // The existing value often doesn't get passed through so we'll grab it ourselves
+					$prev_value = get_user_meta($user_id, $meta_key, true);
+				}
+				if ($meta_value != $prev_value) {
+					add_action('profile_update', 'bbconnect_mailchimp_push_user_groups', 99, 2);
+				}
+			} elseif (in_array($meta_key, $mailchimp_fields)) {
+				if ($meta_key == 'bbconnect_address_country_1') {
+					$bbconnect_helper_country = bbconnect_helper_country();
+					$meta_value = $bbconnect_helper_country[$meta_value];
+				}
+				try {
+					$mailchimp->lists->updateListMember($list_id, $email, array('merge_fields' => array(array_search($meta_key, $mailchimp_fields) => $meta_value)));
+				} catch (Exception $e) {
+					trigger_error($e->getMessage(), E_USER_WARNING);
+				}
+			} elseif ($meta_key == 'bbconnect_personalisation_key') { // Send personalisation key to MC
+				bbconnect_mailchimp_maybe_push_personalisation_key($user_id, $meta_value);
 			}
-			if ($meta_value != $prev_value) {
-				add_action('profile_update', 'bbconnect_mailchimp_push_user_groups', 99, 2);
-			}
-		} elseif (in_array($meta_key, $mailchimp_fields)) {
-			if ($meta_key == 'bbconnect_address_country_1') {
-				$bbconnect_helper_country = bbconnect_helper_country();
-				$meta_value = $bbconnect_helper_country[$meta_value];
-			}
-			try {
-				$mailchimp->lists->updateListMember($list_id, $email, array('merge_fields' => array(array_search($meta_key, $mailchimp_fields) => $meta_value)));
-			} catch (Exception $e) {
-				trigger_error($e->getMessage(), E_USER_WARNING);
-			}
-		} elseif ($meta_key == 'bbconnect_personalisation_key') { // Send personalisation key to MC
-			bbconnect_mailchimp_maybe_push_personalisation_key($user_id, $meta_value);
 		}
 	}
 
