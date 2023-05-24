@@ -215,9 +215,13 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
 					if ($force) {
 						$body = array(
 								'status' => 'subscribed',
-								'merge_fields' => $merge_vars,
-								'interests' => $default_groups,
 						);
+						if (!empty($merge_vars)) {
+							$body['merge_fields'] = $merge_vars;
+						}
+						if (!empty($default_groups)) {
+							$body['interests'] = $default_groups;
+						}
 						$subscriber = $mailchimp->lists->setListMember($list_id, $email, $body, true);
 						if (empty($subscriber->id)) {
 							return 'Failed to resubscribe';
@@ -243,9 +247,13 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
 						$body = array(
 								'email_address' => $email,
 								'status' => 'subscribed',
-								'merge_fields' => $merge_vars,
-								'interests' => $default_groups,
 						);
+						if (!empty($merge_vars)) {
+							$body['merge_fields'] = $merge_vars;
+						}
+						if (!empty($default_groups)) {
+							$body['interests'] = $default_groups;
+						}
 						$subscriber = $mailchimp->lists->addListMember($list_id, $body, true);
 						if (empty($subscriber->id)) {
 							return 'Failed to add subscriber';
