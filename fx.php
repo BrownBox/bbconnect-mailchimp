@@ -235,7 +235,7 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
 					return false;
 					break;
 			}
-		} catch (Spark\MailChimp\Vendor\GuzzleHttp\Exception\ClientException $e) {
+		} catch (Spark\Connexions\MailChimp\Vendor\GuzzleHttp\Exception\ClientException $e) {
 			switch ($e->getResponse()->getStatusCode()) {
 				case 404:
 					// Never subscribed - add them
@@ -339,7 +339,7 @@ function bbconnect_mailchimp_is_user_subscribed($user) {
 			$list_id = get_option('bbconnect_mailchimp_list_id');
 			$subscriber = $mailchimp->lists->getListMember($list_id, $email);
 			return $subscriber->status == 'subscribed';
-		} catch (Spark\MailChimp\Vendor\GuzzleHttp\Exception\ClientException $e) {
+		} catch (Spark\Connexions\MailChimp\Vendor\GuzzleHttp\Exception\ClientException $e) {
 			if ($e->getResponse()->getStatusCode() == 404) {
 				// A 404 means the request was successful but the email address doesn't exist
 				return false;
@@ -641,7 +641,7 @@ function bbconnect_mailchimp_email_update($user_id, $old_user_data) {
 						return false;
 						break;
 				}
-			} catch (Spark\MailChimp\Vendor\GuzzleHttp\Exception\ClientException $e) {
+			} catch (Spark\Connexions\MailChimp\Vendor\GuzzleHttp\Exception\ClientException $e) {
 				if ($e->getResponse()->getStatusCode() == 404) {
 					// Old address wasn't subscribed - if they're supposed to be subscribed, add them
 					if ('true' == get_user_meta($user_id, 'bbconnect_bbc_subscription', true)) {
