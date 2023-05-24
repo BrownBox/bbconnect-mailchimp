@@ -264,6 +264,7 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
 							return true;
 						}
 					} catch (Exception $e) {
+						trigger_error($e->getMessage(), E_USER_WARNING);
 						return false;
 					}
 					break;
@@ -273,6 +274,8 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
 					if (strpos($e->getMessage(), 'Member In Compliance State') !== false) {
 						// They've previously unsubscribed - will have to manually resubscribe
 						bbconnect_mailchimp_send_resubscribe_email($email);
+					} else {
+						trigger_error($e->getMessage(), E_USER_WARNING);
 					}
 					break;
 				default:
