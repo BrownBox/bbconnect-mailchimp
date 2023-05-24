@@ -48,6 +48,7 @@ if (isset($_POST['type'])) {
 			$list_details = $mailchimp->lists->getList($_POST['data']['list_id'], 'name');
 		}
 	} catch (Exception $e) {
+		trigger_error($e->getMessage(), E_USER_WARNING);
 		return;
 	}
 

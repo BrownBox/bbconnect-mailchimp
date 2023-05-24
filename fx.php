@@ -107,7 +107,7 @@ function bbconnect_mailchimp_create_group_fields($create_category) {
 				}
 			}
 		} catch (Exception $e) {
-			// Do nothing
+			trigger_error($e->getMessage(), E_USER_WARNING);
 		}
 	}
 }
@@ -267,9 +267,13 @@ function bbconnect_mailchimp_subscribe_user($user, $force = false) {
 						bbconnect_mailchimp_send_resubscribe_email($email);
 					}
 					break;
+				default:
+					trigger_error($e->getMessage(), E_USER_WARNING);
+					break;
 			}
 			return false;
 		} catch (Exception $e) {
+			trigger_error($e->getMessage(), E_USER_WARNING);
 			return $e->getMessage();
 		}
 	}
@@ -345,8 +349,10 @@ function bbconnect_mailchimp_is_user_subscribed($user) {
 				return false;
 			}
 			// Any other error means we couldn't retrieve the details
+			trigger_error($e->getMessage(), E_USER_WARNING);
 			return null;
 		} catch (Exception $e) {
+			trigger_error($e->getMessage(), E_USER_WARNING);
 			return null;
 		}
 	}
@@ -401,7 +407,7 @@ function bbconnect_mailchimp_push_user_groups($user, $old_user_data = null) {
 				}
 				$mailchimp->lists->updateListMember($list_id, $email, array('interests' => $groups));
 			} catch (Exception $e) {
-				 // Do nothing
+				trigger_error($e->getMessage(), E_USER_WARNING);
 			}
 		}
 	}
@@ -435,7 +441,7 @@ function bbconnect_mailchimp_pull_user_groups($user, $meta_key = '') {
 					}
 				}
 			} catch (Exception $e) {
-				// Do nothing
+				trigger_error($e->getMessage(), E_USER_WARNING);
 			}
 			update_user_meta($user->ID, 'bbconnect_mailchimp_last_group_update', current_time('timestamp'));
 			add_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10, 5);
@@ -516,7 +522,7 @@ function bbconnect_mailchimp_maybe_push_personalisation_key($user, $key = null) 
 					$list_id = get_option('bbconnect_mailchimp_list_id');
 					$mailchimp->lists->updateListMember($list_id, $email, array('merge_fields' => array('KEY' => $key)));
 				} catch (Exception $e) {
-					// Do nothing
+					trigger_error($e->getMessage(), E_USER_WARNING);
 				}
 			}
 		}
@@ -565,7 +571,7 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
 					try {
 						$mailchimp->lists->updateListMember($list_id, $email, array('status' => 'unsubscribed'));
 					} catch (Exception $e) {
-						// Do nothing
+						trigger_error($e->getMessage(), E_USER_WARNING);
 					}
 				} elseif ($meta_value == 'true') {
 					bbconnect_mailchimp_subscribe_user($user_id, true);
@@ -588,7 +594,7 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
 			try {
 				$mailchimp->lists->updateListMember($list_id, $email, array('merge_fields' => array(array_search($meta_key, $mailchimp_fields) => $meta_value)));
 			} catch (Exception $e) {
-				// Do nothing
+				trigger_error($e->getMessage(), E_USER_WARNING);
 			}
 		} elseif ($meta_key == 'bbconnect_personalisation_key') { // Send personalisation key to MC
 			bbconnect_mailchimp_maybe_push_personalisation_key($user_id, $meta_value);
@@ -647,9 +653,11 @@ function bbconnect_mailchimp_email_update($user_id, $old_user_data) {
 					if ('true' == get_user_meta($user_id, 'bbconnect_bbc_subscription', true)) {
 						bbconnect_mailchimp_subscribe_user($user_id);
 					}
+				} else {
+					trigger_error($e->getMessage(), E_USER_WARNING);
 				}
 			} catch (Exception $e) {
-				// Do nothing
+				trigger_error($e->getMessage(), E_USER_WARNING);
 			}
 		}
 	}
@@ -694,7 +702,7 @@ function bbconnect_mailchimp_daily_updates() {
 					}
 				}
 			} catch (Exception $e) {
-				// Do nothing
+				trigger_error($e->getMessage(), E_USER_WARNING);
 			}
 		}
 	}
@@ -726,6 +734,7 @@ function bbconnect_mailchimp_get_client() {
 		// Test the connection
 		$mailchimp->ping->get();
 	} catch (Exception $e) {
+		trigger_error($e->getMessage(), E_USER_WARNING);
 		return false;
 	}
 
