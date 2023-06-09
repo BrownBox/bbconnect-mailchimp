@@ -451,10 +451,10 @@ function bbconnect_mailchimp_pull_user_groups($user, $meta_key = '') {
 						update_user_meta($user->ID, $meta_key, $groups->{$group->id} ? 'true' : 'false');
 					}
 				}
+				update_user_meta($user->ID, 'bbconnect_mailchimp_last_group_update', current_time('timestamp'));
 			} catch (Exception $e) {
 				trigger_error($e->getMessage(), E_USER_WARNING);
 			}
-			update_user_meta($user->ID, 'bbconnect_mailchimp_last_group_update', current_time('timestamp'));
 			add_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10, 5);
 		}
 	}
@@ -473,6 +473,7 @@ function bbconnect_mailchimp_pull_all_user_groups() {
 		$get_total = true;
 		global $blog_id;
 
+		$start = time();
 		do {
 			set_time_limit(600);
 			$args = array(
@@ -507,7 +508,7 @@ function bbconnect_mailchimp_pull_all_user_groups() {
 			$get_total = false;
 			$offset += $limit;
 			unset($query, $users, $user);
-		} while ($offset <= $total_users);
+		} while ($offset <= $total_users && (time() - $start) < 10*MINUTE_IN_SECONDS);
 	}
 }
 
