@@ -618,6 +618,14 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
 	return null; // Tells WP to continue with saving the meta data
 }
 
+// Don't push data to MailChimp during new user creation in case Gravity Forms pushes directly to MailChimp as otherwise we'll override their choices from the form with the CRM defaults
+add_action('bbconnect_before_create_user', function() {
+	remove_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10, 5);
+});
+add_action('bbconnect_after_create_user', function() {
+	add_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10, 5);
+});
+
 // Push group membership for users newly created through the admin
 add_action('admin_init', 'bbconnect_mailchimp_push_new_user_groups');
 function bbconnect_mailchimp_push_new_user_groups() {
