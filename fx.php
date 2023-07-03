@@ -55,11 +55,11 @@ function bbconnect_mailchimp_create_group_fields($create_category) {
 	if ($mailchimp) {
 		try {
 			$list_id = get_option('bbconnect_mailchimp_list_id');
-			$group_categories = $mailchimp->lists->getListInterestCategories($list_id);
+			$group_categories = $mailchimp->lists->getListInterestCategories($list_id, null, null, 100);
 
 			foreach ($group_categories->categories as $category) {
 				if ($category->title == $create_category) {
-					$groups = $mailchimp->lists->listInterestCategoryInterests($list_id, $category->id);
+					$groups = $mailchimp->lists->listInterestCategoryInterests($list_id, $category->id, null, null, 100);
 					update_option('bbconnect_mailchimp_current_groups', $groups->interests, false);
 					// Add fields
 					$fields = array();
@@ -711,10 +711,10 @@ function bbconnect_mailchimp_daily_updates() {
 		if ($mailchimp) {
 			try {
 				$list_id = get_option('bbconnect_mailchimp_list_id');
-				$group_categories = $mailchimp->lists->getListInterestCategories($list_id);
+				$group_categories = $mailchimp->lists->getListInterestCategories($list_id, null, null, 100);
 				foreach ($group_categories->categories as $category) {
 					if ($category->title == $mapped_category) {
-						$groups = $mailchimp->lists->listInterestCategoryInterests($list_id, $category->id);
+						$groups = $mailchimp->lists->listInterestCategoryInterests($list_id, $category->id, null, null, 100);
 						if ($groups->interests !== bbconnect_mailchimp_mapped_groups()) { // Something has changed - remove the current fields and create new ones
 							bbconnect_mailchimp_delete_group_fields($mapped_category);
 							bbconnect_mailchimp_create_group_fields($mapped_category);
