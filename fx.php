@@ -481,12 +481,14 @@ function bbconnect_mailchimp_pull_user_groups($user, $meta_key = '') {
 					}
 				}
 				update_user_meta($user->ID, 'bbconnect_mailchimp_last_group_update', current_time('timestamp'));
+				return true;
 			} catch (Exception $e) {
 				trigger_error($e->getMessage(), E_USER_WARNING);
 			}
 			add_filter('update_user_metadata', 'bbconnect_mailchimp_update', 10, 5);
 		}
 	}
+	return false;
 }
 
 /**
@@ -512,15 +514,24 @@ function bbconnect_mailchimp_pull_all_user_groups() {
 					'offset' => $offset,
 					'count_total' => $get_total,
 					'meta_query' => array(
-							'relation' => 'or',
+							'relation' => 'and',
 							array(
-									'key' => 'bbconnect_mailchimp_last_group_update',
-									'value' => $last_update,
-									'compare' => '<',
+									array(
+											'key' => 'bbconnect_bbc_subscription',
+											'value' => 'true',
+									),
 							),
 							array(
-									'key' => 'bbconnect_mailchimp_last_group_update',
-									'compare' => 'NOT EXISTS',
+									'relation' => 'or',
+									array(
+											'key' => 'bbconnect_mailchimp_last_group_update',
+											'value' => $last_update,
+											'compare' => '<',
+									),
+									array(
+											'key' => 'bbconnect_mailchimp_last_group_update',
+											'compare' => 'NOT EXISTS',
+									),
 							),
 					),
 			);
@@ -532,10 +543,12 @@ function bbconnect_mailchimp_pull_all_user_groups() {
 
 			foreach ($users as $user) {
 				set_time_limit(300);
-				bbconnect_mailchimp_pull_user_groups($user->ID);
+				if (!bbconnect_mailchimp_pull_user_groups($user->ID)) {
+					// If there was an error, skip that user on the next pass
+					$offset++;
+				}
 			}
 			$get_total = false;
-			$offset += $limit;
 			unset($query, $users, $user);
 		} while ($offset <= $total_users && (time() - $start) < 10*MINUTE_IN_SECONDS);
 	}
