@@ -390,6 +390,35 @@ function bbconnect_mailchimp_update_user_default_groups($user) {
 	}
 }
 
+add_filter('gform_mailchimp_subscription', 'bbconnect_mailchimp_gform_mailchimp_subscription', 10, 6);
+/**
+ * Update user meta for mapped groups when user subscribes via GF.
+ * We do this because when configured correctly we won't receive a webhook from MailChimp as GF pushes the data via the API
+ * @param array $subscription
+ * @param string $list_id
+ * @param array $form
+ * @param array $entry
+ * @param array $feed
+ * @param array|boolean $member
+ * @return array
+ */
+function bbconnect_mailchimp_gform_mailchimp_subscription($subscription, $list_id, $form, $entry, $feed, $member) {
+	$mapped_category = get_option('bbconnect_mailchimp_channels_group');
+	if (!empty($mapped_category)) {
+		$user = get_user_by('email', $subscription['email_address']);
+		if ($user instanceof WP_User) {
+			$mapped_groups = bbconnect_mailchimp_mapped_groups();
+			foreach ($mapped_groups as $group) {
+				$meta_key = 'bbconnect_mailchimp_group_'.bbconnect_mailchimp_clean_group_name($mapped_category, $group->id);
+				if (isset($subscription['interests'][$group->id])) {
+					update_user_meta($user->ID, $meta_key, $subscription['interests'][$group->id] ? 'true' : 'false');
+				}
+			}
+		}
+	}
+	return $subscription;
+}
+
 add_action('user_register', 'bbconnect_mailchimp_push_user_groups'); // Push selected groups to MailChimp as soon as a new user is created
 /**
  * Update mapped groups in MailChimp based on user meta
