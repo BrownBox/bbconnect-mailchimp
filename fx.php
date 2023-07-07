@@ -615,6 +615,7 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
 
 	$mailchimp = bbconnect_mailchimp_get_client();
 	if ($mailchimp) {
+		do_action('qm/start', 'bbconnect_mailchimp_update: '.$meta_key);
 		$list_id = get_option('bbconnect_mailchimp_list_id');
 		if ($meta_key == 'bbconnect_bbc_subscription') {
 			if (empty($prev_value)) { // The existing value often doesn't get passed through so we'll grab it ourselves
@@ -655,6 +656,7 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
 				bbconnect_mailchimp_maybe_push_personalisation_key($user_id, $meta_value);
 			}
 		}
+		do_action('qm/stop', 'bbconnect_mailchimp_update: '.$meta_key);
 	}
 
 	return null; // Tells WP to continue with saving the meta data
@@ -690,6 +692,7 @@ function bbconnect_mailchimp_email_update($user_id, $old_user_data) {
 	if (!empty($new_email) && !empty($old_email) && $new_email !== $old_email) {
 		$mailchimp = bbconnect_mailchimp_get_client();
 		if ($mailchimp) {
+			do_action('qm/start', 'bbconnect_mailchimp_email_update');
 			try {
 				$list_id = get_option('bbconnect_mailchimp_list_id');
 				// If they are in the list at all, this will return their details
@@ -723,6 +726,7 @@ function bbconnect_mailchimp_email_update($user_id, $old_user_data) {
 			} catch (Exception $e) {
 				trigger_error($e->getMessage(), E_USER_WARNING);
 			}
+			do_action('qm/stop', 'bbconnect_mailchimp_email_update');
 		}
 	}
 }
@@ -782,24 +786,31 @@ function bbconnect_mailchimp_hourly_updates() {
  * @return \Spark\Connexions\MailChimp\Vendor\MailchimpMarketing\ApiClient|boolean False if connection failed, or client object on success
  */
 function bbconnect_mailchimp_get_client() {
-	$api_key = get_option('bbconnect_mailchimp_api_key');
-	$server = get_option('bbconnect_mailchimp_server');
-	if (empty($server) && strpos($api_key, '-') !== false) {
-		$server = substr($api_key, strrpos($api_key, '-')+1);
-	}
+	$mailchimp = wp_cache_get('bbconnect_mailchimp_client');
 
-	try {
-		$mailchimp = new \Spark\Connexions\MailChimp\Vendor\MailchimpMarketing\ApiClient();
-		$mailchimp->setConfig(array(
-				'apiKey' => $api_key,
-				'server' => $server,
-		));
+	if ($mailchimp === false) {
+		$api_key = get_option('bbconnect_mailchimp_api_key');
+		$server = get_option('bbconnect_mailchimp_server');
+		if (empty($server) && strpos($api_key, '-') !== false) {
+			$server = substr($api_key, strrpos($api_key, '-')+1);
+		}
 
-		// Test the connection
-		$mailchimp->ping->get();
-	} catch (Exception $e) {
-		trigger_error($e->getMessage(), E_USER_WARNING);
-		return false;
+		do_action('qm/start', 'bbconnect_mailchimp_get_client');
+		try {
+			$mailchimp = new \Spark\Connexions\MailChimp\Vendor\MailchimpMarketing\ApiClient();
+			$mailchimp->setConfig(array(
+					'apiKey' => $api_key,
+					'server' => $server,
+			));
+
+			// Test the connection
+			$mailchimp->ping->get();
+		} catch (Exception $e) {
+			trigger_error($e->getMessage(), E_USER_WARNING);
+			return false;
+		}
+		do_action('qm/stop', 'bbconnect_mailchimp_get_client');
+		wp_cache_add('bbconnect_mailchimp_client', $mailchimp, '', 5 * MINUTE_IN_SECONDS);
 	}
 
 	return $mailchimp;
