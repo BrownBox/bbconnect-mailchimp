@@ -613,55 +613,54 @@ function bbconnect_mailchimp_update($null, $user_id, $meta_key, $meta_value, $pr
 
 	$mailchimp_fields = apply_filters('bbconnect_mailchimp_synced_meta_fields', array());
 
-	$mailchimp = bbconnect_mailchimp_get_client();
-	if ($mailchimp) {
-		do_action('qm/start', 'bbconnect_mailchimp_update: '.$meta_key);
-		$list_id = get_option('bbconnect_mailchimp_list_id');
-		if ($meta_key == 'bbconnect_bbc_subscription') {
+	do_action('qm/start', 'bbconnect_mailchimp_update: '.$meta_key);
+	$list_id = get_option('bbconnect_mailchimp_list_id');
+	if ($meta_key == 'bbconnect_bbc_subscription') {
+		if (empty($prev_value)) { // The existing value often doesn't get passed through so we'll grab it ourselves
+			$prev_value = get_user_meta($user_id, $meta_key, true);
+		}
+		if ($meta_value != $prev_value) {
+			if ($meta_value == 'false') {
+				try {
+					$mailchimp = bbconnect_mailchimp_get_client();
+					$mailchimp->lists->updateListMember($list_id, $email, array('status' => 'unsubscribed'));
+				} catch (Exception $e) {
+					trigger_error($e->getMessage(), E_USER_WARNING);
+				}
+			} elseif ($meta_value == 'true') {
+				bbconnect_mailchimp_subscribe_user($user_id, true);
+				// Now that they're subscribed, push their group membership to MailChimp too
+				add_action('profile_update', 'bbconnect_mailchimp_push_user_groups', 99, 2);
+			}
+		}
+	} elseif (strpos($meta_key, 'mailchimp_group') !== false) {
+		if (bbconnect_mailchimp_is_user_subscribed($user_id)) {
 			if (empty($prev_value)) { // The existing value often doesn't get passed through so we'll grab it ourselves
 				$prev_value = get_user_meta($user_id, $meta_key, true);
 			}
 			if ($meta_value != $prev_value) {
-				if ($meta_value == 'false') {
-					try {
-						$mailchimp->lists->updateListMember($list_id, $email, array('status' => 'unsubscribed'));
-					} catch (Exception $e) {
-						trigger_error($e->getMessage(), E_USER_WARNING);
-					}
-				} elseif ($meta_value == 'true') {
-					bbconnect_mailchimp_subscribe_user($user_id, true);
-					// Now that they're subscribed, push their group membership to MailChimp too
-					add_action('profile_update', 'bbconnect_mailchimp_push_user_groups', 99, 2);
-				}
-			}
-		} elseif (strpos($meta_key, 'mailchimp_group') !== false) {
-			if (bbconnect_mailchimp_is_user_subscribed($user_id)) {
-				if (empty($prev_value)) { // The existing value often doesn't get passed through so we'll grab it ourselves
-					$prev_value = get_user_meta($user_id, $meta_key, true);
-				}
-				if ($meta_value != $prev_value) {
-					add_action('profile_update', 'bbconnect_mailchimp_push_user_groups', 99, 2);
-				}
-			}
-		} elseif (in_array($meta_key, $mailchimp_fields)) {
-			if (bbconnect_mailchimp_is_user_subscribed($user_id)) {
-				if ($meta_key == 'bbconnect_address_country_1') {
-					$bbconnect_helper_country = bbconnect_helper_country();
-					$meta_value = $bbconnect_helper_country[$meta_value];
-				}
-				try {
-					$mailchimp->lists->updateListMember($list_id, $email, array('merge_fields' => array(array_search($meta_key, $mailchimp_fields) => $meta_value)));
-				} catch (Exception $e) {
-					trigger_error($e->getMessage(), E_USER_WARNING);
-				}
-			}
-		} elseif ($meta_key == 'bbconnect_personalisation_key') { // Send personalisation key to MC
-			if (bbconnect_mailchimp_is_user_subscribed($user_id)) {
-				bbconnect_mailchimp_maybe_push_personalisation_key($user_id, $meta_value);
+				add_action('profile_update', 'bbconnect_mailchimp_push_user_groups', 99, 2);
 			}
 		}
-		do_action('qm/stop', 'bbconnect_mailchimp_update: '.$meta_key);
+	} elseif (in_array($meta_key, $mailchimp_fields)) {
+		if (bbconnect_mailchimp_is_user_subscribed($user_id)) {
+			if ($meta_key == 'bbconnect_address_country_1') {
+				$bbconnect_helper_country = bbconnect_helper_country();
+				$meta_value = $bbconnect_helper_country[$meta_value];
+			}
+			try {
+				$mailchimp = bbconnect_mailchimp_get_client();
+				$mailchimp->lists->updateListMember($list_id, $email, array('merge_fields' => array(array_search($meta_key, $mailchimp_fields) => $meta_value)));
+			} catch (Exception $e) {
+				trigger_error($e->getMessage(), E_USER_WARNING);
+			}
+		}
+	} elseif ($meta_key == 'bbconnect_personalisation_key') { // Send personalisation key to MC
+		if (bbconnect_mailchimp_is_user_subscribed($user_id)) {
+			bbconnect_mailchimp_maybe_push_personalisation_key($user_id, $meta_value);
+		}
 	}
+	do_action('qm/stop', 'bbconnect_mailchimp_update: '.$meta_key);
 
 	return null; // Tells WP to continue with saving the meta data
 }
